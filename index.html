@@ -1,0 +1,614 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<title>タイヤ点検サービス調査</title>
+<style>
+  :root {
+    --bg: #f4f6f8;
+    --panel: #ffffff;
+    --ink: #1c2430;
+    --sub: #5b6676;
+    --line: #d9dee5;
+    --accent: #0b63ce;
+    --accent-ink: #ffffff;
+    --accent-soft: #e6f0fc;
+    --danger: #c62828;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: var(--bg); color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic UI", "Meiryo", sans-serif;
+    overflow: hidden; -webkit-user-select: none; user-select: none;
+  }
+  #app { display: grid; grid-template-rows: 50% 50%; height: 100vh; height: 100dvh; }
+
+  /* ---------- 上半分：動画 ---------- */
+  #stage { position: relative; background: #000; overflow: hidden; }
+  #stage video, #stage svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  #stage video { object-fit: contain; background: #000; }
+  #stage svg { overflow: hidden; }
+  #stage svg.paused .anim { animation-play-state: paused; }
+  .stage-ctrl { position: absolute; left: 12px; bottom: 12px; display: flex; gap: 8px; z-index: 2; }
+  .stage-ctrl button {
+    border: 0; border-radius: 999px; padding: 10px 18px; font-size: 17px; font-weight: 700;
+    background: rgba(0,0,0,.6); color: #fff; cursor: pointer;
+  }
+  .stage-ctrl button:active { background: rgba(0,0,0,.8); }
+
+  /* ---------- 下半分：アンケート ---------- */
+  #survey { position: relative; display: flex; flex-direction: column; padding: 20px 28px 24px; overflow: hidden; }
+  .screen { display: none; flex: 1; flex-direction: column; min-height: 0; }
+  .screen.active { display: flex; }
+
+  #scr-start, #scr-thanks { align-items: center; justify-content: center; text-align: center; gap: 20px; }
+  .lead { font-size: clamp(20px, 3.2vw, 30px); font-weight: 700; line-height: 1.5; margin: 0; }
+  .note { font-size: clamp(14px, 2vw, 18px); color: var(--sub); margin: 0; line-height: 1.6; }
+  .btn-primary {
+    background: var(--accent); color: var(--accent-ink); border: 0; border-radius: 999px;
+    font-size: clamp(20px, 3vw, 28px); font-weight: 700; padding: 18px 64px; cursor: pointer;
+  }
+  .btn-primary:active { transform: scale(.97); }
+
+  .q-head { display: flex; align-items: center; gap: 16px; margin-bottom: 14px; }
+  .btn-back {
+    border: 2px solid var(--accent); background: var(--panel); color: var(--accent);
+    border-radius: 999px; padding: 10px 22px; font-size: 18px; font-weight: 700; cursor: pointer; white-space: nowrap;
+  }
+  .btn-back:active { background: var(--accent-soft); }
+  .progress { flex: 1; display: flex; align-items: center; gap: 14px; }
+  .progress-bar { flex: 1; height: 8px; background: var(--line); border-radius: 999px; overflow: hidden; }
+  .progress-fill { height: 100%; width: 0; background: var(--accent); transition: width .3s; }
+  .progress-text { font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; min-width: 4.5em; text-align: right; }
+  .q-text { font-size: clamp(20px, 3.4vw, 32px); font-weight: 700; line-height: 1.45; margin: 4px 0 18px; }
+  .choices {
+    display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    overflow-y: auto; align-content: start; padding-bottom: 4px;
+  }
+  .choice {
+    min-height: 64px; padding: 14px 20px; text-align: left;
+    font-size: clamp(17px, 2.5vw, 22px); line-height: 1.4; color: var(--ink);
+    background: var(--panel); border: 2px solid var(--line); border-radius: 14px; cursor: pointer;
+  }
+  .choice.selected { border-color: var(--accent); background: var(--accent-soft); font-weight: 700; }
+
+  /* ---------- 管理画面 ---------- */
+  #btn-admin {
+    position: absolute; right: 8px; bottom: 8px; width: 40px; height: 40px;
+    border: 0; background: transparent; color: var(--line); font-size: 22px; cursor: pointer;
+  }
+  #admin {
+    position: fixed; inset: 0; background: rgba(0,0,0,.45); display: none;
+    align-items: center; justify-content: center; padding: 16px; z-index: 10;
+  }
+  #admin.open { display: flex; }
+  .admin-box {
+    background: var(--panel); border-radius: 16px; width: min(720px, 100%); max-height: 100%;
+    overflow-y: auto; padding: 24px 28px; -webkit-user-select: text; user-select: text;
+  }
+  .admin-box h2 { margin: 0 0 4px; font-size: 22px; }
+  .admin-box section { border-top: 1px solid var(--line); padding: 16px 0; }
+  .admin-box h3 { margin: 0 0 10px; font-size: 17px; }
+  .admin-box p { margin: 6px 0; font-size: 15px; color: var(--sub); line-height: 1.6; }
+  .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  .btn {
+    border: 1px solid var(--line); background: var(--panel); color: var(--ink);
+    border-radius: 10px; padding: 10px 16px; font-size: 15px; cursor: pointer;
+  }
+  .btn.main { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 700; }
+  .btn.danger { color: var(--danger); border-color: var(--danger); }
+  .btn input[type=file] { display: none; }
+  .count { font-size: 28px; font-weight: 700; color: var(--ink); }
+  #inp-site { font-size: 16px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; width: min(360px, 100%); }
+  #q-preview { margin: 8px 0 0; padding-left: 1.4em; font-size: 14px; color: var(--sub); line-height: 1.6; }
+  #q-preview span { color: var(--ink); }
+  .head-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+
+  /* ---------- デモ動画（仮）のアニメーション 14秒・1回再生で停止 ---------- */
+  .anim { animation-duration: 14s; animation-iteration-count: 1; animation-fill-mode: both; animation-timing-function: linear; }
+  #car { animation-name: car-move; animation-timing-function: ease-out; }
+  @keyframes car-move {
+    0% { transform: translateX(-520px); } 25%, 100% { transform: translateX(980px); }
+  }
+  .wheel-spin { transform-box: fill-box; transform-origin: center; animation-name: wheel; animation-timing-function: ease-out; }
+  @keyframes wheel { 0% { transform: rotate(0); } 25%, 100% { transform: rotate(1440deg); } }
+  #scan { animation-name: scan; }
+  @keyframes scan {
+    0%, 26% { opacity: 0; } 28%, 32%, 36%, 40% { opacity: 1; } 30%, 34%, 38% { opacity: .3; } 44%, 100% { opacity: 0; }
+  }
+  #scan-label { animation-name: scan-label; }
+  @keyframes scan-label { 0%, 26% { opacity: 0; } 28%, 42% { opacity: 1; } 44%, 100% { opacity: 0; } }
+  #bad-tire { animation-name: bad-tire; }
+  @keyframes bad-tire { 0%, 44% { opacity: 0; } 46%, 50%, 54%, 58%, 62%, 66% { opacity: 1; } 48%, 52%, 56%, 60%, 64% { opacity: .2; } 68%, 100% { opacity: 0; } }
+  #card-alert { animation-name: card-alert; }
+  @keyframes card-alert { 0%, 44% { opacity: 0; } 47%, 66% { opacity: 1; } 69%, 100% { opacity: 0; } }
+  #card-map { animation-name: card-map; }
+  @keyframes card-map { 0%, 69% { opacity: 0; } 72%, 100% { opacity: 1; } }
+  #pin { transform-box: fill-box; transform-origin: bottom center; animation-name: pin; }
+  @keyframes pin { 0%, 72% { transform: translateY(-40px); opacity: 0; } 76% { transform: translateY(0); opacity: 1; } 79% { transform: translateY(-10px); } 82%, 100% { transform: translateY(0); opacity: 1; } }
+  #fader { animation-name: fader; }
+  @keyframes fader { 0% { opacity: 1; } 4%, 100% { opacity: 0; } }
+</style>
+</head>
+<body>
+<div id="app">
+  <!-- 上半分：動画（アップロード動画 → video.mp4 → デモアニメの順で表示） -->
+  <div id="stage">
+    <video id="video" playsinline preload="auto" hidden></video>
+    <div class="stage-ctrl">
+      <button id="btn-pause">⏸ 一時停止</button>
+      <button id="btn-replay">↺ 最初から</button>
+    </div>
+    <svg id="demo" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid meet" aria-label="サービス紹介（仮の動画）">
+      <defs>
+        <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#bfe3ff"/><stop offset="1" stop-color="#eef7ff"/></linearGradient>
+        <linearGradient id="beam" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#29e3ff" stop-opacity="0"/><stop offset="1" stop-color="#29e3ff"/></linearGradient>
+      </defs>
+      <rect width="1600" height="900" fill="url(#sky)"/>
+      <rect y="640" width="1600" height="260" fill="#9aa3ad"/>
+      <rect y="760" width="1600" height="140" fill="#7c858f"/>
+      <g fill="#fff" opacity=".8"><rect x="40" y="826" width="120" height="10"/><rect x="300" y="826" width="120" height="10"/><rect x="560" y="826" width="120" height="10"/><rect x="820" y="826" width="120" height="10"/><rect x="1080" y="826" width="120" height="10"/><rect x="1340" y="826" width="120" height="10"/></g>
+
+      <!-- ガソリンスタンド -->
+      <rect x="860" y="280" width="720" height="70" rx="8" fill="#d32f2f"/>
+      <text x="1220" y="330" text-anchor="middle" font-size="40" font-weight="700" fill="#fff">GAS STATION</text>
+      <rect x="900" y="350" width="26" height="290" fill="#cfd5db"/>
+      <rect x="1520" y="350" width="26" height="290" fill="#cfd5db"/>
+      <rect x="1440" y="470" width="70" height="170" rx="8" fill="#37474f"/>
+      <rect x="1452" y="488" width="46" height="40" rx="4" fill="#9be7ff"/>
+
+      <!-- 車 -->
+      <g id="car" class="anim">
+        <path d="M20 700 L20 640 Q24 610 60 604 L120 598 L170 540 Q185 524 210 524 L330 524 Q355 524 372 545 L410 598 Q440 604 440 640 L440 700 Z" fill="#1e6fd9"/>
+        <path d="M185 560 Q192 546 210 546 L260 546 L260 598 L150 598 Z" fill="#cdeaff"/>
+        <path d="M278 546 L326 546 Q344 546 354 560 L384 598 L278 598 Z" fill="#cdeaff"/>
+        <rect x="420" y="630" width="20" height="16" rx="4" fill="#ffe082"/>
+        <g class="anim wheel-spin"><circle cx="110" cy="700" r="46" fill="#222"/><circle cx="110" cy="700" r="20" fill="#bbb"/><rect x="106" y="660" width="8" height="80" fill="#888"/></g>
+        <g class="anim wheel-spin"><circle cx="350" cy="700" r="46" fill="#222"/><circle cx="350" cy="700" r="20" fill="#bbb"/><rect x="346" y="660" width="8" height="80" fill="#888"/></g>
+        <circle id="bad-tire" class="anim" cx="350" cy="700" r="58" fill="none" stroke="#ff3b30" stroke-width="10"/>
+      </g>
+
+      <!-- 自動点検 -->
+      <rect id="scan" class="anim" x="960" y="700" width="460" height="60" fill="url(#beam)"/>
+      <g id="scan-label" class="anim">
+        <rect x="80" y="90" width="700" height="110" rx="20" fill="#0d2b4e" opacity=".92"/>
+        <text x="430" y="162" text-anchor="middle" font-size="46" font-weight="700" fill="#fff">タイヤ自動点検中…</text>
+      </g>
+
+      <!-- 警告 -->
+      <g id="card-alert" class="anim">
+        <rect x="80" y="80" width="720" height="300" rx="24" fill="#fff" stroke="#ff3b30" stroke-width="6"/>
+        <text x="130" y="160" font-size="50" font-weight="700" fill="#c62828">⚠ 点検結果</text>
+        <text x="130" y="236" font-size="40" font-weight="700" fill="#1c2430">右前タイヤ：空気圧不足</text>
+        <text x="130" y="296" font-size="32" fill="#5b6676">180kPa（推奨 240kPa）</text>
+        <text x="130" y="346" font-size="32" fill="#5b6676">点検・交換をおすすめします</text>
+      </g>
+
+      <!-- 最寄り店舗マップ -->
+      <g id="card-map" class="anim">
+        <rect x="80" y="60" width="720" height="520" rx="24" fill="#fff" stroke="#cfd5db" stroke-width="4"/>
+        <text x="120" y="130" font-size="40" font-weight="700" fill="#1c2430">最寄りのタイヤ館</text>
+        <rect x="120" y="160" width="640" height="300" rx="12" fill="#e8f0e3"/>
+        <g stroke="#fff" stroke-width="22"><line x1="120" y1="260" x2="760" y2="260"/><line x1="120" y1="390" x2="760" y2="390"/><line x1="300" y1="160" x2="300" y2="460"/><line x1="580" y1="160" x2="580" y2="460"/></g>
+        <path d="M200 390 L300 390 L300 260 L580 260" fill="none" stroke="#0b63ce" stroke-width="10" stroke-dasharray="18 12"/>
+        <circle cx="200" cy="390" r="16" fill="#0b63ce"/>
+        <g id="pin" class="anim"><path d="M580 260 C550 220 548 200 548 190 A32 32 0 1 1 612 190 C612 200 610 220 580 260 Z" fill="#d32f2f"/><circle cx="580" cy="190" r="12" fill="#fff"/></g>
+        <text x="120" y="520" font-size="36" font-weight="700" fill="#1c2430">タイヤ館 ○○店</text>
+        <text x="120" y="562" font-size="30" fill="#5b6676">ここから 1.2km（車で約4分）</text>
+      </g>
+
+      <rect id="fader" class="anim" width="1600" height="900" fill="#000"/>
+      <text x="1580" y="886" text-anchor="end" font-size="22" fill="#fff" opacity=".7">仮の動画（差し替え予定）</text>
+    </svg>
+  </div>
+
+  <!-- 下半分：アンケート -->
+  <div id="survey">
+    <div id="scr-start" class="screen active">
+      <p class="lead">上の動画をご覧いただき、<br>かんたんな質問にお答えください。</p>
+      <p class="note" id="start-note"></p>
+      <button class="btn-primary" id="btn-start">はじめる</button>
+    </div>
+
+    <div id="scr-question" class="screen">
+      <div class="q-head">
+        <button class="btn-back" id="btn-back">← 戻る</button>
+        <div class="progress">
+          <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+          <div class="progress-text" id="progress-text">1 / 5</div>
+        </div>
+      </div>
+      <p class="q-text" id="q-text"></p>
+      <div class="choices" id="choices"></div>
+    </div>
+
+    <div id="scr-thanks" class="screen">
+      <p class="lead">ご協力ありがとうございました。</p>
+      <p class="note">まもなく最初の画面に戻ります。</p>
+    </div>
+
+    <button id="btn-admin" aria-label="管理画面">⚙</button>
+  </div>
+</div>
+
+<!-- 管理画面 -->
+<div id="admin">
+  <div class="admin-box">
+    <div class="head-row"><h2>管理画面</h2><button class="btn" id="btn-close">閉じる</button></div>
+
+    <section>
+      <h3>回答データ</h3>
+      <p>この端末に保存されている回答：<span class="count" id="resp-count">0</span> 件</p>
+      <div class="row">
+        <button class="btn main" id="btn-csv">CSVをダウンロード</button>
+        <button class="btn danger" id="btn-clear">全回答を削除</button>
+      </div>
+      <p>回答はこの端末（ブラウザ）内に保存されます。調査の区切りごとにCSVを保存してください。</p>
+    </section>
+
+    <section>
+      <h3>調査地点・端末名</h3>
+      <input id="inp-site" type="text" placeholder="例：○○SS 1号機">
+      <p>入力した名前がCSVの「調査地点」列に記録されます（複数台で調査する場合に区別できます）。</p>
+    </section>
+
+    <section>
+      <h3>動画</h3>
+      <p>現在：<span id="video-status"></span></p>
+      <div class="row">
+        <label class="btn main">動画ファイルを選ぶ<input type="file" id="inp-video" accept="video/*"></label>
+        <button class="btn" id="btn-video-reset">アップロードした動画を削除</button>
+      </div>
+      <p>選んだ動画はこの端末に保存され、次回以降も表示されます。</p>
+    </section>
+
+    <section>
+      <h3>質問</h3>
+      <div class="row">
+        <label class="btn main">Excelファイルで差し替え<input type="file" id="inp-questions" accept=".xlsx,.xls,.csv"></label>
+        <button class="btn" id="btn-q-reset">初期の質問に戻す</button>
+      </div>
+      <p>A列＝No、B列＝質問、C列＝選択肢（「、」区切り）の形式です。1行目が見出しでも構いません。</p>
+      <ol id="q-preview"></ol>
+    </section>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+// 初期の質問（アンケート.xlsx より）
+const DEFAULT_QUESTIONS = [
+  { no: 1, text: '動画のサービスをどう思いますか？', choices: ['ぜひ欲しい', 'あったら嬉しい', 'あまり興味はない', '正直いらない'] },
+  { no: 2, text: '動画のサービスで、タイヤ館への来店をすすめられたらどうしますか？', choices: ['すぐタイヤ館などに行く', '自分で確認したうえで必要そうなら行く', '多分いかない'] },
+  { no: 3, text: '動画のサービスがあるガソリンスタンドを使ってみたいですか？', choices: ['ぜひ使ってみたい', 'どちらかといえば使いたい', 'そうは思わない', '使いたくない'] },
+  { no: 4, text: '普段、どのくらい運転をしますか？', choices: ['ほぼ毎日', '週に数回', '月に数回', 'めったにしない'] },
+  { no: 5, text: '普段、タイヤの状態を気にしますか？', choices: ['気にする', '気にしない', '気にはなるが何を見ればいいかわからない'] },
+];
+const KEY_Q = 'tireSurvey.questions';
+const KEY_R = 'tireSurvey.responses';
+const KEY_SITE = 'tireSurvey.site';
+const THANKS_MS = 6000;      // お礼画面から最初の画面に戻るまで
+const IDLE_MS = 120000;      // 回答途中で放置されたらリセット
+
+const $ = (id) => document.getElementById(id);
+const pad = (n) => String(n).padStart(2, '0');
+const fmt = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+
+function loadJSON(key, fallback) {
+  try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch (e) { return fallback; }
+}
+function saveJSON(key, value) {
+  try { localStorage.setItem(key, JSON.stringify(value)); return true; }
+  catch (e) { alert('保存に失敗しました。CSVを書き出してから回答を削除してください。'); return false; }
+}
+
+let questions = loadJSON(KEY_Q, DEFAULT_QUESTIONS);
+let session = null;   // { startedAt, answers[] }
+let current = 0;
+let thanksTimer = null, idleTimer = null;
+
+if (navigator.storage && navigator.storage.persist) navigator.storage.persist();
+
+// ---------- 画面遷移 ----------
+function show(name) {
+  document.querySelectorAll('.screen').forEach((s) => s.classList.toggle('active', s.id === 'scr-' + name));
+}
+
+function startSurvey() {
+  session = { startedAt: new Date(), answers: [] };
+  current = 0;
+  restartVideo();
+  renderQuestion();
+  show('question');
+  resetIdle();
+}
+
+function renderQuestion() {
+  const q = questions[current];
+  const n = questions.length;
+  $('progress-text').textContent = `${current + 1} / ${n}`;
+  $('progress-fill').style.width = `${(current / n) * 100}%`;
+  $('q-text').textContent = q.text;
+  $('btn-back').textContent = current === 0 ? '← はじめの画面へ' : '← 前の質問へ';
+  const box = $('choices');
+  box.innerHTML = '';
+  q.choices.forEach((c) => {
+    const b = document.createElement('button');
+    b.className = 'choice';
+    b.textContent = c;
+    if (session.answers[current] && session.answers[current].a === c) b.classList.add('selected');
+    b.addEventListener('click', () => answer(c, b));
+    box.appendChild(b);
+  });
+}
+
+let answering = false;
+function answer(choice, btn) {
+  if (answering) return;
+  answering = true;
+  const q = questions[current];
+  session.answers[current] = { no: q.no, q: q.text, a: choice, at: new Date() };
+  document.querySelectorAll('.choice').forEach((b) => b.classList.toggle('selected', b === btn));
+  setTimeout(() => {
+    answering = false;
+    if (current < questions.length - 1) { current++; renderQuestion(); }
+    else finish();
+  }, 250);
+}
+
+function finish() {
+  const done = new Date();
+  const responses = loadJSON(KEY_R, []);
+  responses.push({
+    id: 'R' + done.getTime(),
+    site: localStorage.getItem(KEY_SITE) || '',
+    startedAt: fmt(session.startedAt),
+    completedAt: fmt(done),
+    seconds: Math.round((done - session.startedAt) / 1000),
+    answers: session.answers.map((x) => ({ no: x.no, q: x.q, a: x.a, at: fmt(x.at) })),
+  });
+  saveJSON(KEY_R, responses);
+  session = null;
+  clearTimeout(idleTimer);
+  $('progress-fill').style.width = '100%';
+  show('thanks');
+  thanksTimer = setTimeout(backToStart, THANKS_MS);
+}
+
+function backToStart() {
+  clearTimeout(thanksTimer); clearTimeout(idleTimer);
+  session = null;
+  show('start');
+}
+
+function resetIdle() {
+  clearTimeout(idleTimer);
+  if (session) idleTimer = setTimeout(backToStart, IDLE_MS);
+}
+
+$('btn-start').addEventListener('click', startSurvey);
+$('btn-back').addEventListener('click', () => {
+  if (current > 0) { current--; renderQuestion(); }
+  else backToStart();
+});
+document.addEventListener('pointerdown', resetIdle);
+
+// ---------- 動画 ----------
+const video = $('video');
+const demo = $('demo');
+let videoSource = 'demo';   // 'uploaded' | 'file' | 'demo'
+let objectUrl = null;
+
+function idb() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open('tireSurvey', 1);
+    req.onupgradeneeded = () => req.result.createObjectStore('files');
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+async function idbOp(mode, fn) {
+  const db = await idb();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('files', mode);
+    const req = fn(tx.objectStore('files'));
+    tx.oncomplete = () => resolve(req && req.result);
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+function useVideo(src, kind) {
+  videoSource = kind;
+  video.hidden = false; demo.style.display = 'none';
+  video.src = src;
+  updateVideoStatus();
+}
+function useDemo() {
+  videoSource = 'demo';
+  video.hidden = true; video.removeAttribute('src'); video.load();
+  demo.style.display = '';
+  updateVideoStatus();
+}
+// 同じフォルダに video.mp4 を置いた場合もそれを使う（複数台に配布するとき用）
+video.addEventListener('error', () => { if (videoSource === 'file') useDemo(); });
+
+async function loadVideo() {
+  try {
+    const blob = await idbOp('readonly', (s) => s.get('video'));
+    if (blob) { objectUrl = URL.createObjectURL(blob); useVideo(objectUrl, 'uploaded'); return; }
+  } catch (e) { /* IndexedDBが使えない環境ではスキップ */ }
+  useVideo('video.mp4', 'file');
+}
+
+function restartVideo() {
+  if (videoSource === 'demo') {
+    demo.querySelectorAll('.anim').forEach((el) => { el.style.animation = 'none'; el.getBoundingClientRect(); el.style.animation = ''; });
+    demo.classList.remove('paused');
+    updatePauseButton();
+    return;
+  }
+  try { video.currentTime = 0; } catch (e) {}
+  playVideo();
+}
+function playVideo() {
+  const p = video.play();
+  if (p && p.catch) p.catch(() => {});
+}
+
+// 最後まで再生したら止まる（再生ボタンで最初から）
+function demoEnded() {
+  const a = $('fader').getAnimations ? $('fader').getAnimations()[0] : null;
+  return !!a && a.playState === 'finished';
+}
+$('fader').addEventListener('animationend', updatePauseButton);
+
+function isPaused() {
+  return videoSource === 'demo' ? (demoEnded() || demo.classList.contains('paused')) : video.paused;
+}
+function togglePause() {
+  if (videoSource === 'demo') {
+    if (demoEnded()) { restartVideo(); return; }
+    demo.classList.toggle('paused'); updatePauseButton(); return;
+  }
+  if (video.paused) playVideo(); else video.pause();
+}
+function updatePauseButton() {
+  $('btn-pause').textContent = isPaused() ? '▶ 再生' : '⏸ 一時停止';
+}
+video.addEventListener('play', updatePauseButton);
+video.addEventListener('pause', updatePauseButton);
+video.addEventListener('ended', updatePauseButton);
+$('btn-pause').addEventListener('click', togglePause);
+$('btn-replay').addEventListener('click', restartVideo);
+
+function updateVideoStatus() {
+  $('video-status').textContent =
+    videoSource === 'uploaded' ? 'アップロードした動画' :
+    videoSource === 'file' ? 'video.mp4（同じフォルダのファイル）' : '仮の動画（車のアニメーション）';
+}
+
+$('inp-video').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  e.target.value = '';
+  if (!file) return;
+  try {
+    await idbOp('readwrite', (s) => s.put(file, 'video'));
+  } catch (err) { alert('動画を保存できませんでした：' + err); return; }
+  if (objectUrl) URL.revokeObjectURL(objectUrl);
+  objectUrl = URL.createObjectURL(file);
+  useVideo(objectUrl, 'uploaded');
+  alert('動画を設定しました。');
+});
+$('btn-video-reset').addEventListener('click', async () => {
+  if (!confirm('アップロードした動画を削除しますか？')) return;
+  try { await idbOp('readwrite', (s) => s.delete('video')); } catch (e) {}
+  if (objectUrl) { URL.revokeObjectURL(objectUrl); objectUrl = null; }
+  useVideo('video.mp4', 'file');
+});
+
+// ---------- 質問の差し替え ----------
+function rowsToQuestions(rows) {
+  const qs = [];
+  rows.forEach((r) => {
+    if (!r || r.length < 3) return;
+    const no = Number(r[0]);
+    const text = String(r[1] ?? '').trim();
+    const choices = String(r[2] ?? '').split(/[、,，\n]/).map((s) => s.trim()).filter(Boolean);
+    if (!Number.isFinite(no) || String(r[0]).trim() === '' || !text || choices.length === 0) return; // 見出し行・空行は飛ばす
+    qs.push({ no, text, choices });
+  });
+  return qs;
+}
+
+$('inp-questions').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  e.target.value = '';
+  if (!file) return;
+  if (typeof XLSX === 'undefined') { alert('Excel読み込み機能を読み込めませんでした。インターネット接続を確認してください。'); return; }
+  try {
+    const wb = XLSX.read(await file.arrayBuffer(), { type: 'array' });
+    const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, defval: '' });
+    const qs = rowsToQuestions(rows);
+    if (qs.length === 0) { alert('質問が見つかりませんでした。A列＝No、B列＝質問、C列＝選択肢 の形式か確認してください。'); return; }
+    if (!confirm(`${qs.length}問の質問に差し替えます。よろしいですか？`)) return;
+    questions = qs;
+    saveJSON(KEY_Q, qs);
+    renderAdmin();
+    backToStart();
+  } catch (err) { alert('ファイルを読み込めませんでした：' + err); }
+});
+$('btn-q-reset').addEventListener('click', () => {
+  if (!confirm('初期の質問（5問）に戻しますか？')) return;
+  questions = DEFAULT_QUESTIONS;
+  localStorage.removeItem(KEY_Q);
+  renderAdmin();
+  backToStart();
+});
+
+// ---------- CSV ----------
+function toCSV() {
+  const responses = loadJSON(KEY_R, []);
+  // 質問を途中で差し替えても列がずれないよう、質問No＋質問文で列を作る
+  const cols = [];
+  responses.forEach((r) => r.answers.forEach((a) => {
+    const key = `Q${a.no} ${a.q}`;
+    if (!cols.includes(key)) cols.push(key);
+  }));
+  const header = ['回答ID', '調査地点', '開始時刻', '回答時刻', '所要時間(秒)', ...cols];
+  const lines = [header];
+  responses.forEach((r) => {
+    const map = {};
+    r.answers.forEach((a) => { map[`Q${a.no} ${a.q}`] = a.a; });
+    lines.push([r.id, r.site, r.startedAt, r.completedAt, r.seconds, ...cols.map((c) => map[c] ?? '')]);
+  });
+  const esc = (v) => { const s = String(v ?? ''); return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
+  return '﻿' + lines.map((l) => l.map(esc).join(',')).join('\r\n');
+}
+
+$('btn-csv').addEventListener('click', () => {
+  const blob = new Blob([toCSV()], { type: 'text/csv;charset=utf-8' });
+  const d = new Date();
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `アンケート結果_${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}.csv`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+});
+$('btn-clear').addEventListener('click', () => {
+  const n = loadJSON(KEY_R, []).length;
+  if (n === 0) return;
+  if (!confirm(`保存されている ${n} 件の回答をすべて削除します。CSVは保存済みですか？`)) return;
+  if (!confirm('本当に削除しますか？元に戻せません。')) return;
+  localStorage.removeItem(KEY_R);
+  renderAdmin();
+});
+
+// ---------- 管理画面 ----------
+function renderAdmin() {
+  $('resp-count').textContent = loadJSON(KEY_R, []).length;
+  $('inp-site').value = localStorage.getItem(KEY_SITE) || '';
+  updateVideoStatus();
+  const ol = $('q-preview');
+  ol.innerHTML = '';
+  questions.forEach((q) => {
+    const li = document.createElement('li');
+    const t = document.createElement('span');
+    t.textContent = q.text;
+    li.append(t, document.createElement('br'), q.choices.join(' / '));
+    ol.appendChild(li);
+  });
+  $('start-note').textContent = `全${questions.length}問・1分ほどで終わります`;
+}
+$('btn-admin').addEventListener('click', () => { renderAdmin(); $('admin').classList.add('open'); });
+$('btn-close').addEventListener('click', () => $('admin').classList.remove('open'));
+$('inp-site').addEventListener('input', (e) => { try { localStorage.setItem(KEY_SITE, e.target.value.trim()); } catch (err) {} });
+
+renderAdmin();
+loadVideo();
+</script>
+</body>
+</html>
