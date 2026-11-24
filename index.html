@@ -29,10 +29,8 @@
 
   /* ---------- 上半分：動画 ---------- */
   #stage { position: relative; background: #000; overflow: hidden; }
-  #stage video, #stage svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  #stage video, #stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
   #stage video { object-fit: contain; background: #000; }
-  #stage svg { overflow: hidden; }
-  #stage svg.paused .anim { animation-play-state: paused; }
   .stage-ctrl { position: absolute; left: 12px; bottom: 12px; display: flex; gap: 8px; z-index: 2; }
   .stage-ctrl button {
     border: 0; border-radius: 999px; padding: 10px 18px; font-size: 17px; font-weight: 700;
@@ -53,8 +51,9 @@
     font-size: clamp(20px, 3vw, 28px); font-weight: 700; padding: 18px 64px; cursor: pointer;
   }
   .btn-primary:active { transform: scale(.97); }
+  .btn-primary:disabled { background: var(--line); color: var(--sub); cursor: default; transform: none; }
 
-  .q-head { display: flex; align-items: center; gap: 16px; margin-bottom: 14px; }
+  .q-head { display: flex; align-items: center; gap: 16px; margin-bottom: 12px; }
   .btn-back {
     border: 2px solid var(--accent); background: var(--panel); color: var(--accent);
     border-radius: 999px; padding: 10px 22px; font-size: 18px; font-weight: 700; cursor: pointer; white-space: nowrap;
@@ -63,18 +62,29 @@
   .progress { flex: 1; display: flex; align-items: center; gap: 14px; }
   .progress-bar { flex: 1; height: 8px; background: var(--line); border-radius: 999px; overflow: hidden; }
   .progress-fill { height: 100%; width: 0; background: var(--accent); transition: width .3s; }
-  .progress-text { font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; min-width: 4.5em; text-align: right; }
-  .q-text { font-size: clamp(20px, 3.4vw, 32px); font-weight: 700; line-height: 1.45; margin: 4px 0 18px; }
+  .progress-text { font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; text-align: right; }
+  .q-text { font-size: clamp(20px, 3.2vw, 30px); font-weight: 700; line-height: 1.45; margin: 2px 0 4px; }
+  .q-sub { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 0 10px; }
+  .q-hint { font-size: clamp(15px, 2vw, 18px); color: var(--accent); font-weight: 700; margin: 0; }
+  .btn-next { display: none; flex: none; padding: 10px 40px; font-size: clamp(18px, 2.4vw, 22px); }
+  .btn-next.show { display: block; }
   .choices {
-    display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    flex: 1; min-height: 0;
+    display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
     overflow-y: auto; align-content: start; padding-bottom: 4px;
   }
   .choice {
-    min-height: 64px; padding: 14px 20px; text-align: left;
-    font-size: clamp(17px, 2.5vw, 22px); line-height: 1.4; color: var(--ink);
+    min-height: 56px; padding: 10px 18px; text-align: left;
+    font-size: clamp(17px, 2.3vw, 21px); line-height: 1.35; color: var(--ink);
     background: var(--panel); border: 2px solid var(--line); border-radius: 14px; cursor: pointer;
+    display: flex; align-items: center; gap: 12px;
   }
   .choice.selected { border-color: var(--accent); background: var(--accent-soft); font-weight: 700; }
+  .choice .box {
+    flex: none; width: 26px; height: 26px; border: 2px solid var(--sub); border-radius: 6px;
+    display: grid; place-items: center; font-size: 18px; color: #fff; line-height: 1;
+  }
+  .choice.selected .box { background: var(--accent); border-color: var(--accent); }
 
   /* ---------- 管理画面 ---------- */
   #btn-admin {
@@ -87,7 +97,7 @@
   }
   #admin.open { display: flex; }
   .admin-box {
-    background: var(--panel); border-radius: 16px; width: min(720px, 100%); max-height: 100%;
+    background: var(--panel); border-radius: 16px; width: min(760px, 100%); max-height: 100%;
     overflow-y: auto; padding: 24px 28px; -webkit-user-select: text; user-select: text;
   }
   .admin-box h2 { margin: 0 0 4px; font-size: 22px; }
@@ -104,106 +114,23 @@
   .btn input[type=file] { display: none; }
   .count { font-size: 28px; font-weight: 700; color: var(--ink); }
   #inp-site { font-size: 16px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; width: min(360px, 100%); }
-  #q-preview { margin: 8px 0 0; padding-left: 1.4em; font-size: 14px; color: var(--sub); line-height: 1.6; }
-  #q-preview span { color: var(--ink); }
+  #q-preview { margin: 8px 0 0; padding: 0; list-style: none; font-size: 14px; color: var(--sub); line-height: 1.6; }
+  #q-preview li { padding: 8px 0; border-bottom: 1px dashed var(--line); }
+  #q-preview b { color: var(--ink); }
+  #q-preview .flow { color: var(--accent); }
   .head-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-
-  /* ---------- デモ動画（仮）のアニメーション 14秒・1回再生で停止 ---------- */
-  .anim { animation-duration: 14s; animation-iteration-count: 1; animation-fill-mode: both; animation-timing-function: linear; }
-  #car { animation-name: car-move; animation-timing-function: ease-out; }
-  @keyframes car-move {
-    0% { transform: translateX(-520px); } 25%, 100% { transform: translateX(980px); }
-  }
-  .wheel-spin { transform-box: fill-box; transform-origin: center; animation-name: wheel; animation-timing-function: ease-out; }
-  @keyframes wheel { 0% { transform: rotate(0); } 25%, 100% { transform: rotate(1440deg); } }
-  #scan { animation-name: scan; }
-  @keyframes scan {
-    0%, 26% { opacity: 0; } 28%, 32%, 36%, 40% { opacity: 1; } 30%, 34%, 38% { opacity: .3; } 44%, 100% { opacity: 0; }
-  }
-  #scan-label { animation-name: scan-label; }
-  @keyframes scan-label { 0%, 26% { opacity: 0; } 28%, 42% { opacity: 1; } 44%, 100% { opacity: 0; } }
-  #bad-tire { animation-name: bad-tire; }
-  @keyframes bad-tire { 0%, 44% { opacity: 0; } 46%, 50%, 54%, 58%, 62%, 66% { opacity: 1; } 48%, 52%, 56%, 60%, 64% { opacity: .2; } 68%, 100% { opacity: 0; } }
-  #card-alert { animation-name: card-alert; }
-  @keyframes card-alert { 0%, 44% { opacity: 0; } 47%, 66% { opacity: 1; } 69%, 100% { opacity: 0; } }
-  #card-map { animation-name: card-map; }
-  @keyframes card-map { 0%, 69% { opacity: 0; } 72%, 100% { opacity: 1; } }
-  #pin { transform-box: fill-box; transform-origin: bottom center; animation-name: pin; }
-  @keyframes pin { 0%, 72% { transform: translateY(-40px); opacity: 0; } 76% { transform: translateY(0); opacity: 1; } 79% { transform: translateY(-10px); } 82%, 100% { transform: translateY(0); opacity: 1; } }
-  #fader { animation-name: fader; }
-  @keyframes fader { 0% { opacity: 1; } 4%, 100% { opacity: 0; } }
 </style>
 </head>
 <body>
 <div id="app">
-  <!-- 上半分：動画（アップロード動画 → video.mp4 → デモアニメの順で表示） -->
+  <!-- 上半分：動画（アップロード動画 → video.mp4 → 内蔵アニメの順で表示） -->
   <div id="stage">
     <video id="video" playsinline preload="auto" hidden></video>
+    <canvas id="demo" aria-label="サービス紹介の動画"></canvas>
     <div class="stage-ctrl">
       <button id="btn-pause">⏸ 一時停止</button>
       <button id="btn-replay">↺ 最初から</button>
     </div>
-    <svg id="demo" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid meet" aria-label="サービス紹介（仮の動画）">
-      <defs>
-        <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#bfe3ff"/><stop offset="1" stop-color="#eef7ff"/></linearGradient>
-        <linearGradient id="beam" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#29e3ff" stop-opacity="0"/><stop offset="1" stop-color="#29e3ff"/></linearGradient>
-      </defs>
-      <rect width="1600" height="900" fill="url(#sky)"/>
-      <rect y="640" width="1600" height="260" fill="#9aa3ad"/>
-      <rect y="760" width="1600" height="140" fill="#7c858f"/>
-      <g fill="#fff" opacity=".8"><rect x="40" y="826" width="120" height="10"/><rect x="300" y="826" width="120" height="10"/><rect x="560" y="826" width="120" height="10"/><rect x="820" y="826" width="120" height="10"/><rect x="1080" y="826" width="120" height="10"/><rect x="1340" y="826" width="120" height="10"/></g>
-
-      <!-- ガソリンスタンド -->
-      <rect x="860" y="280" width="720" height="70" rx="8" fill="#d32f2f"/>
-      <text x="1220" y="330" text-anchor="middle" font-size="40" font-weight="700" fill="#fff">GAS STATION</text>
-      <rect x="900" y="350" width="26" height="290" fill="#cfd5db"/>
-      <rect x="1520" y="350" width="26" height="290" fill="#cfd5db"/>
-      <rect x="1440" y="470" width="70" height="170" rx="8" fill="#37474f"/>
-      <rect x="1452" y="488" width="46" height="40" rx="4" fill="#9be7ff"/>
-
-      <!-- 車 -->
-      <g id="car" class="anim">
-        <path d="M20 700 L20 640 Q24 610 60 604 L120 598 L170 540 Q185 524 210 524 L330 524 Q355 524 372 545 L410 598 Q440 604 440 640 L440 700 Z" fill="#1e6fd9"/>
-        <path d="M185 560 Q192 546 210 546 L260 546 L260 598 L150 598 Z" fill="#cdeaff"/>
-        <path d="M278 546 L326 546 Q344 546 354 560 L384 598 L278 598 Z" fill="#cdeaff"/>
-        <rect x="420" y="630" width="20" height="16" rx="4" fill="#ffe082"/>
-        <g class="anim wheel-spin"><circle cx="110" cy="700" r="46" fill="#222"/><circle cx="110" cy="700" r="20" fill="#bbb"/><rect x="106" y="660" width="8" height="80" fill="#888"/></g>
-        <g class="anim wheel-spin"><circle cx="350" cy="700" r="46" fill="#222"/><circle cx="350" cy="700" r="20" fill="#bbb"/><rect x="346" y="660" width="8" height="80" fill="#888"/></g>
-        <circle id="bad-tire" class="anim" cx="350" cy="700" r="58" fill="none" stroke="#ff3b30" stroke-width="10"/>
-      </g>
-
-      <!-- 自動点検 -->
-      <rect id="scan" class="anim" x="960" y="700" width="460" height="60" fill="url(#beam)"/>
-      <g id="scan-label" class="anim">
-        <rect x="80" y="90" width="700" height="110" rx="20" fill="#0d2b4e" opacity=".92"/>
-        <text x="430" y="162" text-anchor="middle" font-size="46" font-weight="700" fill="#fff">タイヤ自動点検中…</text>
-      </g>
-
-      <!-- 警告 -->
-      <g id="card-alert" class="anim">
-        <rect x="80" y="80" width="720" height="300" rx="24" fill="#fff" stroke="#ff3b30" stroke-width="6"/>
-        <text x="130" y="160" font-size="50" font-weight="700" fill="#c62828">⚠ 点検結果</text>
-        <text x="130" y="236" font-size="40" font-weight="700" fill="#1c2430">右前タイヤ：空気圧不足</text>
-        <text x="130" y="296" font-size="32" fill="#5b6676">180kPa（推奨 240kPa）</text>
-        <text x="130" y="346" font-size="32" fill="#5b6676">点検・交換をおすすめします</text>
-      </g>
-
-      <!-- 最寄り店舗マップ -->
-      <g id="card-map" class="anim">
-        <rect x="80" y="60" width="720" height="520" rx="24" fill="#fff" stroke="#cfd5db" stroke-width="4"/>
-        <text x="120" y="130" font-size="40" font-weight="700" fill="#1c2430">最寄りのタイヤ館</text>
-        <rect x="120" y="160" width="640" height="300" rx="12" fill="#e8f0e3"/>
-        <g stroke="#fff" stroke-width="22"><line x1="120" y1="260" x2="760" y2="260"/><line x1="120" y1="390" x2="760" y2="390"/><line x1="300" y1="160" x2="300" y2="460"/><line x1="580" y1="160" x2="580" y2="460"/></g>
-        <path d="M200 390 L300 390 L300 260 L580 260" fill="none" stroke="#0b63ce" stroke-width="10" stroke-dasharray="18 12"/>
-        <circle cx="200" cy="390" r="16" fill="#0b63ce"/>
-        <g id="pin" class="anim"><path d="M580 260 C550 220 548 200 548 190 A32 32 0 1 1 612 190 C612 200 610 220 580 260 Z" fill="#d32f2f"/><circle cx="580" cy="190" r="12" fill="#fff"/></g>
-        <text x="120" y="520" font-size="36" font-weight="700" fill="#1c2430">タイヤ館 ○○店</text>
-        <text x="120" y="562" font-size="30" fill="#5b6676">ここから 1.2km（車で約4分）</text>
-      </g>
-
-      <rect id="fader" class="anim" width="1600" height="900" fill="#000"/>
-      <text x="1580" y="886" text-anchor="end" font-size="22" fill="#fff" opacity=".7">仮の動画（差し替え予定）</text>
-    </svg>
   </div>
 
   <!-- 下半分：アンケート -->
@@ -219,10 +146,11 @@
         <button class="btn-back" id="btn-back">← 戻る</button>
         <div class="progress">
           <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
-          <div class="progress-text" id="progress-text">1 / 5</div>
+          <div class="progress-text" id="progress-text"></div>
         </div>
       </div>
       <p class="q-text" id="q-text"></p>
+      <div class="q-sub"><p class="q-hint" id="q-hint"></p><button class="btn-primary btn-next" id="btn-next">次へ →</button></div>
       <div class="choices" id="choices"></div>
     </div>
 
@@ -272,27 +200,623 @@
         <label class="btn main">Excelファイルで差し替え<input type="file" id="inp-questions" accept=".xlsx,.xls,.csv"></label>
         <button class="btn" id="btn-q-reset">初期の質問に戻す</button>
       </div>
-      <p>A列＝No、B列＝質問、C列＝選択肢（「、」区切り）の形式です。1行目が見出しでも構いません。</p>
-      <ol id="q-preview"></ol>
+      <p>A列＝No、B列＝質問、C列＝選択肢（「、」区切り）、D列＝複数選択なら「○」、E列＝次の質問（空欄＝次の行／「終了」／「嫌だ→5、それ以外→4」のように選択肢ごとの分岐）。</p>
+      <ul id="q-preview"></ul>
     </section>
   </div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
-// 初期の質問（アンケート.xlsx より）
+// ==DEMO-ANIM-START==
+// サービス紹介アニメーション（30秒）。DemoAnim.draw(ctx, 秒) で 1600x900 の座標系に1コマ描く。
+// 固有の企業名・ブランド・実在車種は描かない方針（SSはグレー、車は汎用コンパクトカー）。
+const DemoAnim = (() => {
+  const W = 1600, H = 900, DURATION = 30;
+  const FONT = '"Hiragino Sans","Hiragino Kaku Gothic ProN","Yu Gothic UI","Yu Gothic","Meiryo",sans-serif';
+  const PI = Math.PI;
+  const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
+  const seg = (t, a, b) => clamp((t - a) / (b - a));
+  const lerp = (a, b, k) => a + (b - a) * k;
+  const easeInOut = (k) => (k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2);
+  const easeOut = (k) => 1 - Math.pow(1 - k, 3);
+  const easeIn = (k) => k * k * k;
+  const vis = (t, a, b, f = 0.3) => Math.min(seg(t, a, a + f), 1 - seg(t, b - f, b));
+
+  const C = {
+    skyTop: '#a8cfee', skyBot: '#e9f3fb',
+    canopy: '#8b9199', canopyDark: '#6f757d', canopyLine: '#c6cad0', under: '#e4e6e9',
+    pillar: '#d5d8dc', ground: '#cdd1d6', groundDark: '#b9bec4',
+    car: '#4a8fc6', carDark: '#2f6c9f', glass: '#2e3c4b',
+    cyan: '#22c7f0', red: '#ff3b30', green: '#1f9d55',
+    skin: '#f1c6a3', ink: '#1c2430', sub: '#5b6676',
+  };
+
+  function rr(c, x, y, w, h, r) {
+    r = Math.min(r, w / 2, h / 2);
+    c.beginPath();
+    c.moveTo(x + r, y);
+    c.arcTo(x + w, y, x + w, y + h, r);
+    c.arcTo(x + w, y + h, x, y + h, r);
+    c.arcTo(x, y + h, x, y, r);
+    c.arcTo(x, y, x + w, y, r);
+    c.closePath();
+  }
+  function fillRR(c, x, y, w, h, r, color) { rr(c, x, y, w, h, r); c.fillStyle = color; c.fill(); }
+  function circle(c, x, y, r, color) { c.beginPath(); c.arc(x, y, r, 0, PI * 2); c.fillStyle = color; c.fill(); }
+  function txt(c, s, x, y, size, color, o = {}) {
+    c.font = `${o.weight || 700} ${size}px ${FONT}`;
+    c.textAlign = o.align || 'left';
+    c.textBaseline = o.base || 'alphabetic';
+    c.fillStyle = color;
+    c.fillText(s, x, y);
+  }
+
+  // ---------------- 部品 ----------------
+  function drawWheel(c, cx, cy, r, ang) {
+    c.save();
+    c.translate(cx, cy);
+    circle(c, 0, 0, r, '#1c2127');
+    circle(c, 0, 0, r * 0.9, '#2b323a');
+    circle(c, 0, 0, r * 0.62, '#cfd4da');
+    circle(c, 0, 0, r * 0.52, '#9aa2ab');
+    c.rotate(ang);
+    c.fillStyle = '#d9dde2';
+    for (let i = 0; i < 6; i++) {
+      c.save(); c.rotate((i * PI) / 3);
+      rr(c, -r * 0.07, -r * 0.55, r * 0.14, r * 0.45, r * 0.05); c.fill();
+      c.restore();
+    }
+    circle(c, 0, 0, r * 0.16, '#7b838c');
+    c.restore();
+  }
+
+  // 汎用コンパクトカー（右向き）。原点＝車の後端・地面。全長約525
+  const CAR_BODY = 'M16 -38 Q3 -40 3 -70 L5 -112 Q9 -130 24 -152 Q44 -198 96 -211 Q150 -224 236 -222 Q298 -220 330 -204 Q356 -190 398 -146 Q468 -138 505 -122 Q523 -113 524 -90 L524 -60 Q522 -40 503 -38 Z';
+  function drawCar(c, x, gy, ang, o = {}) {
+    c.save();
+    c.translate(x, gy);
+    c.fillStyle = 'rgba(0,0,0,.18)';
+    c.beginPath(); c.ellipse(264, 2, 285, 13, 0, 0, PI * 2); c.fill();
+    const body = new Path2D(CAR_BODY);
+    const g = c.createLinearGradient(0, -222, 0, -38);
+    g.addColorStop(0, '#6aaee0'); g.addColorStop(0.55, C.car); g.addColorStop(1, C.carDark);
+    c.fillStyle = g; c.fill(body);
+    // 下部のバンパー・サイドシル
+    c.save(); c.clip(body);
+    c.fillStyle = 'rgba(20,30,45,.28)'; c.fillRect(0, -60, 530, 30);
+    c.restore();
+    // タイヤハウス
+    c.fillStyle = '#1f2a35';
+    c.beginPath(); c.arc(112, -44, 58, PI, 0); c.fill();
+    c.beginPath(); c.arc(420, -44, 58, PI, 0); c.fill();
+    // 窓
+    const gl = c.createLinearGradient(0, -205, 0, -150);
+    gl.addColorStop(0, '#46596c'); gl.addColorStop(1, C.glass);
+    c.fillStyle = gl;
+    c.fill(new Path2D('M44 -152 Q60 -186 100 -198 L132 -201 L132 -152 Z'));
+    c.fill(new Path2D('M146 -203 L246 -206 L246 -152 L146 -152 Z'));
+    c.fill(new Path2D('M260 -206 Q300 -204 322 -193 Q344 -181 376 -152 L260 -152 Z'));
+    // 窓の映り込み
+    c.fillStyle = 'rgba(255,255,255,.16)';
+    c.fill(new Path2D('M160 -152 L196 -204 L216 -204 L180 -152 Z'));
+    c.fill(new Path2D('M282 -152 L316 -195 L330 -188 L300 -152 Z'));
+    if (o.driver) { circle(c, 300, -172, 17, 'rgba(15,20,25,.55)'); }
+    // ドア線・取っ手・ライン
+    c.strokeStyle = 'rgba(10,25,40,.35)'; c.lineWidth = 2.5;
+    c.beginPath(); c.moveTo(139, -152); c.lineTo(139, -62); c.moveTo(253, -152); c.lineTo(253, -62);
+    c.moveTo(376, -152); c.quadraticCurveTo(386, -110, 372, -62); c.stroke();
+    c.strokeStyle = 'rgba(255,255,255,.28)'; c.lineWidth = 3;
+    c.beginPath(); c.moveTo(14, -112); c.lineTo(512, -104); c.stroke();
+    fillRR(c, 196, -136, 30, 8, 4, 'rgba(10,25,40,.45)');
+    fillRR(c, 312, -136, 30, 8, 4, 'rgba(10,25,40,.45)');
+    // ミラー
+    c.fillStyle = C.carDark;
+    c.fill(new Path2D('M362 -160 Q368 -176 386 -174 L388 -158 Q376 -154 362 -160 Z'));
+    // ライト
+    c.fillStyle = '#fff6d2'; c.beginPath(); c.ellipse(504, -106, 15, 10, -0.2, 0, PI * 2); c.fill();
+    fillRR(c, 5, -122, 13, 34, 5, '#d9463a');
+    // ホイール
+    drawWheel(c, 112, -44, 44, ang);
+    drawWheel(c, 420, -44, 44, ang);
+    c.restore();
+  }
+
+  // 人物（足元が原点、身長約250）。kind: 'staff' | 'customer'
+  function drawPerson(c, x, gy, kind, p = {}) {
+    const staff = kind === 'staff';
+    const s = p.scale || 1;
+    c.save();
+    c.translate(x, gy);
+    c.scale(s * (p.dir || 1), s);
+    c.fillStyle = 'rgba(0,0,0,.15)'; c.beginPath(); c.ellipse(0, 2, 46, 8, 0, 0, PI * 2); c.fill();
+    const sw = p.walk != null ? Math.sin(p.walk) * 0.38 : 0;
+    const legColor = staff ? '#4a5058' : '#efcdb0';
+    const leg = (hx, a) => {
+      c.save(); c.translate(hx, -112); c.rotate(a);
+      fillRR(c, -11, 0, 22, 106, 10, legColor);
+      fillRR(c, -12, 98, 32, 14, 7, staff ? '#2d3238' : '#8a6a55');
+      c.restore();
+    };
+    leg(-11, sw); leg(11, -sw);
+    if (!staff) { // スカート
+      c.fillStyle = '#d9c4a6';
+      c.beginPath(); c.moveTo(-32, -122); c.lineTo(32, -122); c.lineTo(44, -58); c.lineTo(-44, -58); c.closePath(); c.fill();
+    }
+    // 上半身（おじぎは腰を軸に回転）
+    c.save();
+    c.translate(0, -112); c.rotate((p.bow || 0) * 0.75); c.translate(0, 112);
+    const top = staff ? '#9ba2aa' : '#f3e6a2';
+    const arm = (sx, a, front) => {
+      c.save(); c.translate(sx, -176); c.rotate(a);
+      fillRR(c, -10, -4, 20, 80, 10, top);
+      if (staff) fillRR(c, -10, 52, 20, 12, 4, '#5f666e');
+      circle(c, 0, 78, 10, C.skin);
+      if (front && p.phone) {
+        c.translate(0, 82); c.rotate(-a);
+        fillRR(c, -16, -40, 32, 56, 6, '#1d2228');
+        fillRR(c, -13, -37, 26, 48, 4, p.phoneGlow ? '#9fe3ff' : '#5c7286');
+      }
+      c.restore();
+    };
+    arm(-30, p.armL != null ? p.armL : -sw * 0.8, false);
+    fillRR(c, -36, -192, 72, 90, 24, top);
+    if (staff) {
+      fillRR(c, -36, -140, 72, 38, 14, '#5f666e');
+      c.fillStyle = '#ffffff'; c.beginPath(); c.moveTo(-12, -192); c.lineTo(0, -176); c.lineTo(12, -192); c.closePath(); c.fill();
+    } else {
+      c.strokeStyle = 'rgba(160,140,60,.5)'; c.lineWidth = 2;
+      c.beginPath(); c.moveTo(0, -188); c.lineTo(0, -104); c.stroke();
+    }
+    fillRR(c, -8, -204, 16, 16, 6, C.skin);
+    // 頭
+    if (!staff) {
+      c.fillStyle = '#7a4b2e';
+      c.beginPath(); c.ellipse(0, -214, 33, 35, 0, PI * 0.9, PI * 2.1); c.lineTo(32, -190); c.lineTo(-32, -190); c.closePath(); c.fill();
+    }
+    circle(c, 0, -216, 27, C.skin);
+    if (staff) {
+      c.fillStyle = '#6b7279';
+      c.beginPath(); c.arc(0, -222, 28, PI, 0); c.closePath(); c.fill();
+      fillRR(c, -4, -226, 42, 8, 4, '#565c63');
+    } else {
+      c.fillStyle = '#7a4b2e';
+      c.beginPath(); c.ellipse(0, -232, 29, 16, 0, PI, PI * 2); c.fill();
+      c.beginPath(); c.moveTo(-28, -232); c.quadraticCurveTo(-6, -228, 6, -238); c.quadraticCurveTo(18, -226, 28, -230); c.lineTo(28, -240); c.lineTo(-28, -240); c.closePath(); c.fill();
+    }
+    circle(c, -9, -214, 2.8, '#2b2b2b');
+    circle(c, 9, -214, 2.8, '#2b2b2b');
+    c.strokeStyle = '#a0503c'; c.lineWidth = 2.4;
+    c.beginPath();
+    if (p.surprised) c.arc(0, -200, 4.5, 0, PI * 2); else c.arc(0, -204, 7, PI * 0.15, PI * 0.85);
+    c.stroke();
+    if (!staff) { circle(c, -16, -204, 5, 'rgba(240,130,120,.35)'); circle(c, 16, -204, 5, 'rgba(240,130,120,.35)'); }
+    arm(30, p.armR != null ? p.armR : sw * 0.8, true);
+    c.restore();
+    c.restore();
+  }
+
+  function bubble(c, x, y, w, h, lines, tailX, tailY, alpha, size = 38) {
+    if (alpha <= 0) return;
+    c.save();
+    c.globalAlpha = alpha;
+    c.shadowColor = 'rgba(0,0,0,.25)'; c.shadowBlur = 16; c.shadowOffsetY = 4;
+    rr(c, x, y, w, h, 28); c.fillStyle = '#fff'; c.fill();
+    const bx = clamp(tailX, x + 40, x + w - 40);
+    c.beginPath(); c.moveTo(bx - 22, y + h - 2); c.lineTo(tailX, tailY); c.lineTo(bx + 22, y + h - 2); c.closePath(); c.fill();
+    c.shadowColor = 'transparent';
+    lines.forEach((s, i) => txt(c, s, x + w / 2, y + 30 + size + i * size * 1.4, size, C.ink, { align: 'center', base: 'alphabetic' }));
+    c.restore();
+  }
+
+  function panel(c, s, y, alpha, color = 'rgba(13,43,78,.9)', size = 44) {
+    if (alpha <= 0) return;
+    c.save(); c.globalAlpha = alpha;
+    c.font = `700 ${size}px ${FONT}`;
+    const w = c.measureText(s).width + 80;
+    rr(c, (W - w) / 2, y, w, size + 46, 22); c.fillStyle = color; c.fill();
+    txt(c, s, W / 2, y + size + 14, size, '#fff', { align: 'center' });
+    c.restore();
+  }
+
+  // ---------------- 背景（SS全景） ----------------
+  const BUILDINGS = [
+    [-700, 330, 260, '#c3ccd6'], [-420, 270, 200, '#b7c2ce'], [-200, 360, 180, '#cad2da'],
+    [0, 300, 170, '#bcc6d1'], [190, 380, 150, '#c8d0d9'], [1180, 250, 210, '#bdc7d2'],
+    [1400, 330, 180, '#c9d1da'], [1600, 280, 230, '#b9c3ce'], [1850, 350, 200, '#c6ced8'], [2060, 300, 240, '#bcc6d1'],
+  ];
+  function drawWorld(c, t, st) {
+    // 空
+    const g = c.createLinearGradient(0, -300, 0, 700);
+    g.addColorStop(0, C.skyTop); g.addColorStop(1, C.skyBot);
+    c.fillStyle = g; c.fillRect(-1000, -600, 3600, 1300);
+    c.fillStyle = 'rgba(255,255,255,.75)';
+    [[120, 120, 1], [700, 70, 0.8], [1400, 140, 1.1]].forEach(([x, y, k]) => {
+      c.beginPath(); c.ellipse(x, y, 90 * k, 26 * k, 0, 0, PI * 2); c.ellipse(x + 60 * k, y - 16 * k, 60 * k, 26 * k, 0, 0, PI * 2); c.fill();
+    });
+    // 街並み
+    BUILDINGS.forEach(([x, top, w, col]) => {
+      c.fillStyle = col; c.fillRect(x, top, w, 700 - top);
+      c.fillStyle = 'rgba(255,255,255,.45)';
+      for (let yy = top + 24; yy < 640; yy += 46) for (let xx = x + 18; xx < x + w - 30; xx += 44) c.fillRect(xx, yy, 24, 22);
+    });
+    // 地面
+    c.fillStyle = C.ground; c.fillRect(-1000, 700, 3600, 700);
+    c.fillStyle = C.groundDark; c.fillRect(-1000, 860, 3600, 12);
+    c.fillStyle = '#9aa1a8'; c.fillRect(-1000, 872, 3600, 500);
+    c.fillStyle = 'rgba(255,255,255,.75)';
+    for (let x = -1000; x < 2600; x += 260) c.fillRect(x, 950, 140, 10);
+    c.fillStyle = 'rgba(255,255,255,.7)'; c.fillRect(380, 780, 1100, 6);
+    // 価格看板（ブランドなし）
+    fillRR(c, 150, 300, 22, 400, 4, '#7d848c');
+    fillRR(c, 76, 300, 170, 230, 12, '#6f767e');
+    fillRR(c, 88, 312, 146, 206, 8, '#f3f4f6');
+    [['レギュラー', '168'], ['ハイオク', '179'], ['軽油', '149']].forEach(([n, p], i) => {
+      txt(c, n, 100, 352 + i * 64, 22, '#3b4148');
+      txt(c, p, 222, 380 + i * 64, 34, '#2b3138', { align: 'right' });
+    });
+    // 柱
+    [560, 1340].forEach((px) => {
+      c.fillStyle = C.pillar; c.fillRect(px - 18, 240, 36, 460);
+      c.fillStyle = 'rgba(0,0,0,.08)'; c.fillRect(px + 6, 240, 12, 460);
+    });
+    // キャノピー（グレー）
+    c.fillStyle = C.under; c.fillRect(330, 222, 1500, 26);
+    for (let x = 420; x < 1800; x += 180) { c.fillStyle = '#fffbe8'; c.fillRect(x, 244, 60, 6); }
+    const cg = c.createLinearGradient(0, 150, 0, 226);
+    cg.addColorStop(0, '#9aa0a8'); cg.addColorStop(1, C.canopyDark);
+    c.fillStyle = cg; c.fillRect(310, 150, 1520, 76);
+    c.fillStyle = C.canopyLine; c.fillRect(310, 196, 1520, 8);
+    c.fillStyle = '#5f656c'; c.fillRect(310, 150, 1520, 6);
+    // 給油機（1番レーン）
+    fillRR(c, 880, 676, 230, 28, 6, '#b5bac0');
+    fillRR(c, 926, 432, 128, 246, 10, '#eef0f2');
+    c.strokeStyle = '#a9afb6'; c.lineWidth = 3; rr(c, 926, 432, 128, 246, 10); c.stroke();
+    fillRR(c, 914, 410, 152, 40, 8, '#6f767e');
+    fillRR(c, 946, 466, 88, 54, 6, '#2b3138');
+    txt(c, '40.00', 1028, 504, 26, '#9ff0c4', { align: 'right' });
+    [['#d9463a', 950], ['#e9b824', 980], ['#2f9b57', 1010]].forEach(([col, nx]) => {
+      fillRR(c, nx, 548, 20, 44, 5, col);
+      c.strokeStyle = '#30363c'; c.lineWidth = 5;
+      c.beginPath(); c.moveTo(nx + 10, 592); c.quadraticCurveTo(nx - 30, 660, nx + 10, 676); c.stroke();
+    });
+    circle(c, 990, 380, 30, '#5a6169');
+    txt(c, '1', 990, 393, 38, '#fff', { align: 'center' });
+    // 点検カメラ（ポール）
+    if (!st.hidePost) {
+    fillRR(c, 458, 566, 24, 134, 6, '#7b828a');
+    fillRR(c, 444, 548, 52, 30, 9, '#4b5259');
+    circle(c, 484, 563, 8, st.scanOn ? '#7fe3ff' : '#8fb7cc');
+    }
+
+    if (st.scanCone > 0) {
+      c.save(); c.globalAlpha = st.scanCone * 0.35;
+      const sg = c.createLinearGradient(484, 563, 900, 680);
+      sg.addColorStop(0, 'rgba(34,199,240,.9)'); sg.addColorStop(1, 'rgba(34,199,240,0)');
+      c.fillStyle = sg;
+      c.beginPath(); c.moveTo(484, 563); c.lineTo(st.carX + 520, 640); c.lineTo(st.carX + 520, 702); c.lineTo(st.carX - 10, 702); c.closePath(); c.fill();
+      c.restore();
+    }
+    if (st.customer) drawPerson(c, st.customer.x, 700, 'customer', st.customer);
+    if (st.carVisible !== false) drawCar(c, st.carX, 700, st.wheelAng, { driver: st.driver });
+    if (st.staff) drawPerson(c, st.staff.x, 700, 'staff', st.staff);
+  }
+
+  function camera(c, cx, cy, s) {
+    c.translate(W / 2, H / 2); c.scale(s, s); c.translate(-cx, -cy);
+  }
+
+  function brackets(c, cx, cy, r, color, lw) {
+    c.save(); c.strokeStyle = color; c.lineWidth = lw; c.lineCap = 'round';
+    const L = r * 0.45;
+    [[-1, -1], [1, -1], [1, 1], [-1, 1]].forEach(([sx, sy]) => {
+      c.beginPath();
+      c.moveTo(cx + sx * r, cy + sy * (r - L)); c.lineTo(cx + sx * r, cy + sy * r); c.lineTo(cx + sx * (r - L), cy + sy * r);
+      c.stroke();
+    });
+    c.restore();
+  }
+
+  // ---------------- シーン ----------------
+  function sceneTitle(c, t) {
+    const g = c.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, '#1f262e'); g.addColorStop(1, '#0d1116');
+    c.fillStyle = g; c.fillRect(0, 0, W, H);
+    const a = seg(t, 0.1, 0.8);
+    c.save(); c.globalAlpha = a;
+    c.translate(0, (1 - easeOut(a)) * 20);
+    txt(c, 'DEMONSTRATION MOVIE', W / 2, 300, 40, '#9aa3ad', { align: 'center' });
+    txt(c, 'タイヤ自動点検サービス', W / 2, 430, 96, '#ffffff', { align: 'center' });
+    c.fillStyle = C.cyan; c.fillRect(W / 2 - 60, 480, 120, 6);
+    txt(c, '給油のついでに、タイヤもチェック', W / 2, 570, 44, '#d5dbe1', { align: 'center', weight: 500 });
+    c.restore();
+    c.save(); c.globalAlpha = seg(t, 0.5, 1.1);
+    txt(c, '※ サービスのイメージ映像です', W / 2, 800, 30, '#8c96a1', { align: 'center', weight: 500 });
+    c.restore();
+  }
+
+  function sceneArrive(c, t) {
+    const k = easeOut(seg(t, 3.2, 7.0));
+    const carX = lerp(-600, 600, k);
+    const zoom = easeInOut(seg(t, 7.0, 8.2));
+    c.save();
+    camera(c, lerp(800, 840, zoom), lerp(450, 560, zoom), lerp(1, 1.18, zoom));
+    const scanOn = t > 7.2;
+    drawWorld(c, t, { carX, wheelAng: (carX + 600) / 44, driver: true, scanOn, scanCone: vis(t, 7.3, 10.2, 0.4) });
+    // スキャンライン
+    const sk = seg(t, 7.5, 8.7);
+    if (sk > 0 && sk < 1) {
+      const sx = lerp(carX - 10, carX + 530, sk);
+      const lg = c.createLinearGradient(sx - 40, 0, sx + 6, 0);
+      lg.addColorStop(0, 'rgba(34,199,240,0)'); lg.addColorStop(1, 'rgba(34,199,240,.55)');
+      c.fillStyle = lg; c.fillRect(sx - 40, 470, 46, 232);
+      c.fillStyle = '#bff3ff'; c.fillRect(sx, 470, 4, 232);
+    }
+    // ホイールの枠
+    const ba = seg(t, 8.5, 8.8);
+    if (ba > 0) {
+      const bad = t > 9.0;
+      const blink = bad ? (Math.sin((t - 9) * 14) > -0.3 ? 1 : 0.35) : 1;
+      c.save(); c.globalAlpha = ba;
+      brackets(c, carX + 420, 656, 64, C.cyan, 6);
+      c.globalAlpha = ba * blink;
+      brackets(c, carX + 112, 656, 64, bad ? C.red : C.cyan, bad ? 8 : 6);
+      c.restore();
+      if (bad) {
+        c.save(); c.globalAlpha = seg(t, 9.0, 9.25);
+        fillRR(c, carX + 20, 526, 190, 48, 10, C.red);
+        txt(c, '空気圧 低下', carX + 115, 560, 28, '#fff', { align: 'center' });
+        c.restore();
+      }
+    }
+    c.restore();
+    panel(c, 'タイヤ自動点検中…', 70, vis(t, 7.3, 9.0, 0.25));
+    if (t > 9.0) {
+      const a = seg(t, 9.0, 9.3);
+      c.save(); c.globalAlpha = a;
+      const x = 330, y = 60, w = 940, h = 150;
+      rr(c, x, y, w, h, 24); c.fillStyle = 'rgba(255,255,255,.96)'; c.fill();
+      c.strokeStyle = C.red; c.lineWidth = 6; c.stroke();
+      txt(c, '⚠ 右後輪の空気圧が低下しています', x + 50, y + 66, 46, '#c62828');
+      txt(c, '180kPa（基準 240kPa）', x + 50, y + 122, 34, C.sub, { weight: 500 });
+      c.restore();
+    }
+  }
+
+  function scenePhone(c, t) {
+    const g = c.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, '#d9dde2'); g.addColorStop(1, '#b8bec5');
+    c.fillStyle = g; c.fillRect(0, 0, W, H);
+    // ぼかした背景（キャノピーと給油機）
+    const band = c.createLinearGradient(0, 40, 0, 220);
+    band.addColorStop(0, 'rgba(120,126,134,0)'); band.addColorStop(0.5, 'rgba(120,126,134,.7)'); band.addColorStop(1, 'rgba(120,126,134,0)');
+    c.fillStyle = band; c.fillRect(0, 40, W, 180);
+    [[220, 520, 160, 'rgba(255,255,255,.5)'], [1320, 480, 200, 'rgba(240,242,245,.6)'], [1450, 760, 140, 'rgba(90,96,104,.35)'], [140, 800, 180, 'rgba(74,143,198,.35)']].forEach(([x, y, r, col]) => {
+      const rg = c.createRadialGradient(x, y, 0, x, y, r);
+      rg.addColorStop(0, col); rg.addColorStop(1, 'rgba(255,255,255,0)');
+      c.fillStyle = rg; c.fillRect(x - r, y - r, r * 2, r * 2);
+    });
+    const k = easeOut(seg(t, 10.0, 10.6));
+    c.save();
+    c.translate(800, 500 + (1 - k) * 140);
+    c.rotate(-0.05);
+    // 手のひらと指（後ろ側）
+    c.fillStyle = '#e8b892';
+    c.beginPath(); c.ellipse(170, 420, 190, 230, -0.3, 0, PI * 2); c.fill();
+    for (let i = 0; i < 4; i++) fillRR(c, 222, -40 + i * 110, 70, 96, 34, '#eebf9a');
+    // 端末
+    fillRR(c, -250, -470, 500, 1000, 64, '#1b1f24');
+    const sg = c.createLinearGradient(0, -450, 0, 500);
+    sg.addColorStop(0, '#3b5166'); sg.addColorStop(1, '#1b2531');
+    fillRR(c, -232, -452, 464, 964, 50, sg);
+    txt(c, '11:34', -180, -404, 28, '#fff');
+    fillRR(c, 132, -420, 54, 22, 6, 'rgba(255,255,255,.85)');
+    // 通知
+    const nk = easeOut(seg(t, 10.6, 11.0));
+    if (nk > 0) {
+      const y = lerp(-560, -380, nk);
+      c.save(); c.globalAlpha = nk;
+      fillRR(c, -220, y, 440, 186, 28, 'rgba(246,247,249,.97)');
+      fillRR(c, -198, y + 22, 44, 44, 11, '#5f6b78');
+      circle(c, -176, y + 44, 15, '#fff'); circle(c, -176, y + 44, 7, '#5f6b78');
+      txt(c, 'タイヤ点検システム', -142, y + 54, 22, '#555b62', { weight: 500 });
+      txt(c, '今', 198, y + 54, 22, '#80868d', { align: 'right', weight: 500 });
+      ['1番レーンの車：右後輪の空気圧が', '低下しています（180kPa）。', 'お客様へのご案内をお願いします。'].forEach((s, i) => txt(c, s, -198, y + 100 + i * 32, 23, '#111'));
+      c.restore();
+    }
+    // 点検結果カード
+    const dk = easeOut(seg(t, 12.0, 12.4));
+    if (dk > 0) {
+      const y0 = -170 + (1 - dk) * 30;
+      c.save(); c.globalAlpha = dk;
+      fillRR(c, -220, y0, 440, 420, 28, 'rgba(255,255,255,.97)');
+      txt(c, '点検結果（1番レーン）', 0, y0 + 50, 26, C.ink, { align: 'center' });
+      fillRR(c, -56, y0 + 80, 112, 250, 44, C.car);
+      fillRR(c, -40, y0 + 120, 80, 40, 10, C.glass);
+      fillRR(c, -40, y0 + 270, 80, 30, 10, C.glass);
+      txt(c, '前', 0, y0 + 72, 18, C.sub, { align: 'center', weight: 500 });
+      const blink = Math.sin((t - 12) * 12) > -0.2;
+      const tires = [[-76, y0 + 110, '240', false], [60, y0 + 110, '240', false], [-76, y0 + 250, '240', false], [60, y0 + 250, '180', true]];
+      tires.forEach(([tx, ty, v, bad]) => {
+        fillRR(c, tx, ty, 16, 48, 5, bad ? (blink ? C.red : '#ffb3ad') : '#2b3138');
+        const left = tx < 0;
+        txt(c, v, left ? tx - 14 : tx + 30, ty + 34, 30, bad ? C.red : C.green, { align: left ? 'right' : 'left' });
+      });
+      txt(c, '低下', 120, y0 + 330, 22, C.red, { align: 'center' });
+      txt(c, '単位：kPa　基準 240kPa', 0, y0 + 396, 20, C.sub, { align: 'center', weight: 500 });
+      c.restore();
+    }
+    // 親指（手前）
+    c.fillStyle = '#eebf9a';
+    c.save(); c.translate(-250, 330); c.rotate(-0.5); rr(c, -40, -120, 80, 200, 40); c.fill(); c.restore();
+    c.restore();
+  }
+
+  function sceneTalk(c, t) {
+    const wk = seg(t, 14.6, 16.0);
+    const staffX = lerp(100, 370, easeOut(wk));
+    const walking = wk > 0 && wk < 1;
+    const raise = easeOut(seg(t, 16.0, 16.4));
+    c.save();
+    camera(c, 560, 520, 1.7);
+    drawWorld(c, t, {
+      carX: 600, wheelAng: 0, hidePost: true,
+      customer: { x: 556, dir: -1, surprised: t > 18.6, armR: t > 18.6 ? lerp(0, -0.5, seg(t, 18.6, 18.9)) : null },
+      staff: { x: staffX, dir: 1, walk: walking ? (t - 14.6) * 9 : null, armR: lerp(0.1, -1.35, raise), phone: true, phoneGlow: true },
+    });
+    c.restore();
+    bubble(c, 150, 80, 600, 170, ['右後ろのタイヤの空気圧が', '下がっているようです。'], 480, 320, vis(t, 16.3, 18.7, 0.25));
+    bubble(c, 830, 80, 600, 170, ['えっ、気づかなかった！', '見てもらえますか？'], 830, 320, vis(t, 18.7, 21.2, 0.25));
+  }
+
+  function sceneInflate(c, t) {
+    // 背景
+    const g = c.createLinearGradient(0, 0, 0, 640);
+    g.addColorStop(0, '#dfe4e9'); g.addColorStop(1, '#c9ced4');
+    c.fillStyle = g; c.fillRect(0, 0, W, 640);
+    c.fillStyle = '#c3c8ce'; c.fillRect(0, 640, W, 260);
+    c.fillStyle = 'rgba(0,0,0,.2)'; c.beginPath(); c.ellipse(1020, 890, 420, 30, 0, 0, PI * 2); c.fill();
+    // 車体（側面アップ）
+    const bg = c.createLinearGradient(0, 0, 0, 700);
+    bg.addColorStop(0, '#6aaee0'); bg.addColorStop(1, C.carDark);
+    c.fillStyle = bg;
+    c.beginPath(); c.moveTo(560, -20); c.lineTo(1700, -20); c.lineTo(1700, 700); c.lineTo(600, 700); c.quadraticCurveTo(540, 400, 560, -20); c.fill();
+    c.strokeStyle = 'rgba(255,255,255,.3)'; c.lineWidth = 6;
+    c.beginPath(); c.moveTo(580, 210); c.lineTo(1700, 190); c.stroke();
+    circle(c, 1020, 600, 320, '#1f2a35');
+    drawWheel(c, 1020, 600, 290, 0.3);
+    // バルブ
+    const vx = 1020 + Math.cos(-2.4) * 172, vy = 600 + Math.sin(-2.4) * 172;
+    fillRR(c, vx - 7, vy - 26, 14, 30, 4, '#3a4046');
+    // ゲージとホース
+    const gx = 440, gy = 330, gr = 150;
+    c.strokeStyle = '#262b31'; c.lineWidth = 16; c.lineCap = 'round';
+    c.beginPath(); c.moveTo(gx, gy + gr); c.quadraticCurveTo(gx + 40, 720, 0, 760); c.stroke();
+    c.beginPath(); c.moveTo(gx + gr - 10, gy + 30); c.quadraticCurveTo(vx - 120, vy - 140, vx - 10, vy - 30); c.stroke();
+    fillRR(c, vx - 44, vy - 60, 60, 40, 10, '#59616a');
+    // 腕と手
+    c.fillStyle = '#9ba2aa';
+    c.beginPath(); c.moveTo(-20, 560); c.quadraticCurveTo(400, 470, vx - 50, vy - 18); c.lineTo(vx - 46, vy + 30); c.quadraticCurveTo(400, 560, -20, 680); c.closePath(); c.fill();
+    fillRR(c, vx - 110, vy - 30, 40, 64, 10, '#5f666e');
+    circle(c, vx - 40, vy - 18, 30, C.skin);
+    // ゲージ本体
+    circle(c, gx, gy, gr + 18, '#3a4046');
+    circle(c, gx, gy, gr, '#ffffff');
+    const v = 180 + 60 * easeInOut(seg(t, 21.9, 24.0));
+    const A0 = PI * 0.75, A1 = PI * 2.25, toA = (val) => lerp(A0, A1, val / 400);
+    c.lineWidth = 18; c.lineCap = 'butt';
+    c.strokeStyle = 'rgba(31,157,85,.8)'; c.beginPath(); c.arc(gx, gy, gr - 24, toA(220), toA(260)); c.stroke();
+    c.strokeStyle = 'rgba(255,59,48,.6)'; c.beginPath(); c.arc(gx, gy, gr - 24, toA(0), toA(200)); c.stroke();
+    c.strokeStyle = '#2b3138'; c.lineWidth = 3;
+    for (let i = 0; i <= 8; i++) {
+      const a = toA(i * 50);
+      c.beginPath(); c.moveTo(gx + Math.cos(a) * (gr - 6), gy + Math.sin(a) * (gr - 6)); c.lineTo(gx + Math.cos(a) * (gr - 36), gy + Math.sin(a) * (gr - 36)); c.stroke();
+      if (i % 2 === 0) txt(c, String(i * 50), gx + Math.cos(a) * (gr - 60), gy + Math.sin(a) * (gr - 60) + 8, 22, '#2b3138', { align: 'center' });
+    }
+    const na = toA(v);
+    c.strokeStyle = '#d32f2f'; c.lineWidth = 6; c.lineCap = 'round';
+    c.beginPath(); c.moveTo(gx, gy); c.lineTo(gx + Math.cos(na) * (gr - 30), gy + Math.sin(na) * (gr - 30)); c.stroke();
+    circle(c, gx, gy, 12, '#2b3138');
+    fillRR(c, gx - 80, gy + 46, 160, 50, 10, '#1d2228');
+    txt(c, `${Math.round(v)} kPa`, gx, gy + 82, 32, v >= 239 ? '#9ff0c4' : '#ffb3ad', { align: 'center' });
+
+    panel(c, '空気を補充しています…', 60, vis(t, 21.3, 24.1, 0.25));
+    panel(c, '✓ 適正な空気圧になりました（240kPa）', 60, seg(t, 24.1, 24.4), 'rgba(22,120,64,.94)');
+  }
+
+  function sceneLeave(c, t) {
+    const k = easeIn(seg(t, 25.9, 28.6));
+    const carX = lerp(600, 2000, k);
+    const bow = easeInOut(seg(t, 26.3, 26.8)) * (1 - easeInOut(seg(t, 27.9, 28.4)));
+    c.save();
+    camera(c, 800, 450, 1);
+    drawWorld(c, t, { carX, wheelAng: (carX - 600) / 44, driver: true, hidePost: true, staff: { x: 400, dir: 1, bow } });
+    c.restore();
+    const a = seg(t, 27.0, 27.6);
+    if (a > 0) {
+      c.save(); c.globalAlpha = a;
+      c.fillStyle = 'rgba(13,20,30,.72)'; c.fillRect(0, 300, W, 250);
+      txt(c, '給油のついでに、タイヤも安心。', W / 2, 410, 68, '#fff', { align: 'center' });
+      txt(c, 'タイヤ自動点検サービス（イメージ）', W / 2, 490, 34, '#cfd6dd', { align: 'center', weight: 500 });
+      c.restore();
+    }
+  }
+
+  const STEPS = [
+    [3.0, 7.0, '① 給油のためにスタンドへ'],
+    [7.0, 10.0, '② カメラがタイヤを自動で点検'],
+    [10.0, 14.5, '③ スタッフのスマホに通知'],
+    [14.5, 21.0, '④ スタッフからお客様にお知らせ'],
+    [21.0, 25.5, '⑤ その場で空気を補充'],
+    [25.5, 27.0, '⑥ 安心して出発'],
+  ];
+  const CUTS = [3.0, 10.0, 14.5, 21.0, 25.5];
+
+  function draw(c, t) {
+    t = clamp(t, 0, DURATION);
+    c.save();
+    c.beginPath(); c.rect(0, 0, W, H); c.clip();
+    if (t < 3.0) sceneTitle(c, t);
+    else if (t < 10.0) sceneArrive(c, t);
+    else if (t < 14.5) scenePhone(c, t);
+    else if (t < 21.0) sceneTalk(c, t);
+    else if (t < 25.5) sceneInflate(c, t);
+    else sceneLeave(c, t);
+
+    STEPS.forEach(([a, b, s]) => {
+      const al = vis(t, a + 0.15, b, 0.3);
+      if (al <= 0) return;
+      c.save(); c.globalAlpha = al;
+      c.font = `700 32px ${FONT}`;
+      const w = c.measureText(s).width + 48;
+      const y = (t >= 7.0 && t < 10.0) || (t >= 21.0 && t < 25.5) ? 790 : 40;
+      rr(c, 36, y, w, 62, 31); c.fillStyle = 'rgba(20,28,38,.78)'; c.fill();
+      txt(c, s, 60, y + 43, 32, '#fff');
+      c.restore();
+    });
+    if (t >= 3.0) {
+      c.save();
+      c.shadowColor = 'rgba(0,0,0,.6)'; c.shadowBlur = 6;
+      txt(c, '※ サービスのイメージ映像です', W - 30, H - 26, 24, 'rgba(255,255,255,.92)', { align: 'right', weight: 500 });
+      c.restore();
+    }
+    let dip = 0;
+    CUTS.forEach((k) => { dip = Math.max(dip, 1 - Math.abs(t - k) / 0.28); });
+    if (dip > 0) { c.fillStyle = `rgba(0,0,0,${dip})`; c.fillRect(0, 0, W, H); }
+    c.restore();
+  }
+
+  return { draw, W, H, DURATION };
+})();
+// ==DEMO-ANIM-END==
+</script>
+<script>
+// ================= 質問の定義（アンケート図.png のフロー） =================
+// id：質問の番号 / multi：複数選択 / next：次の質問
+//   next が文字列 → 常にその質問へ、オブジェクト → 選んだ選択肢ごとに分岐（'*' はそれ以外）、'END' → 終了
 const DEFAULT_QUESTIONS = [
-  { no: 1, text: '動画のサービスをどう思いますか？', choices: ['ぜひ欲しい', 'あったら嬉しい', 'あまり興味はない', '正直いらない'] },
-  { no: 2, text: '動画のサービスで、タイヤ館への来店をすすめられたらどうしますか？', choices: ['すぐタイヤ館などに行く', '自分で確認したうえで必要そうなら行く', '多分いかない'] },
-  { no: 3, text: '動画のサービスがあるガソリンスタンドを使ってみたいですか？', choices: ['ぜひ使ってみたい', 'どちらかといえば使いたい', 'そうは思わない', '使いたくない'] },
-  { no: 4, text: '普段、どのくらい運転をしますか？', choices: ['ほぼ毎日', '週に数回', '月に数回', 'めったにしない'] },
-  { no: 5, text: '普段、タイヤの状態を気にしますか？', choices: ['気にする', '気にしない', '気にはなるが何を見ればいいかわからない'] },
+  { id: 'Q1', text: '車検以外で、お車やタイヤの点検を普段おこないますか？',
+    choices: ['はい', 'いいえ'], next: { 'はい': 'Q2', 'いいえ': 'Q3' } },
+  { id: 'Q2', text: 'ご自身が感じる、タイヤ点検の難しいポイントはどこですか？',
+    choices: ['傷の程度（使ってよいか）', '溝の程度', '耐用年数', '内圧の測定', '特になし'], next: 'Q3' },
+  { id: 'Q3', text: '動画のサービスをどう思いますか？',
+    choices: ['是非つかいたい', '無料なら嬉しい', '興味ない', '嫌だ'], next: { '嫌だ': 'Q5', '*': 'Q4' } },
+  { id: 'Q4', text: '動画のサービスがあるお店を、優先して使いたいと思いますか？',
+    choices: ['はい', 'いいえ'], next: 'Q6' },
+  { id: 'Q5', text: '動画のサービスで、嫌な点はどこですか？', multi: true,
+    choices: ['撮影される点', '不安を煽られる', 'タイヤ購入に誘導されそう'], next: 'END' },
+  { id: 'Q6', text: 'このようなサービスを受けられると嬉しいのは、どんな場所ですか？', multi: true,
+    choices: ['ガソリンスタンド', '高速道路の入口', '高速道路のサービスエリア', 'スーパーや出先の駐車場', 'ご自身のスマホアプリ'], next: 'Q7' },
+  { id: 'Q7', text: '動画のサービスで、追加で欲しい機能はありますか？', multi: true,
+    choices: ['タイヤの買い替え時期の提案', '最適なタイヤの提案', '特になし'], next: 'END' },
 ];
-const KEY_Q = 'tireSurvey.questions';
+const EXCLUSIVE = /^(特になし|とくになし|なし)$/;   // 複数選択でこれを選ぶと他の選択は外れる
+const KEY_Q = 'tireSurvey.questions.v2';
 const KEY_R = 'tireSurvey.responses';
 const KEY_SITE = 'tireSurvey.site';
 const THANKS_MS = 6000;      // お礼画面から最初の画面に戻るまで
 const IDLE_MS = 120000;      // 回答途中で放置されたらリセット
+const MULTI_SEP = ' / ';     // CSVで複数選択をつなぐ文字
 
 const $ = (id) => document.getElementById(id);
 const pad = (n) => String(n).padStart(2, '0');
@@ -307,11 +831,41 @@ function saveJSON(key, value) {
 }
 
 let questions = loadJSON(KEY_Q, DEFAULT_QUESTIONS);
-let session = null;   // { startedAt, answers[] }
-let current = 0;
+let session = null;   // { startedAt, path: [質問id...], answers: { id: { a: 文字列 or 配列, at } } }
 let thanksTimer = null, idleTimer = null;
 
 if (navigator.storage && navigator.storage.persist) navigator.storage.persist();
+
+// ---------- 分岐の計算 ----------
+const qById = (id) => questions.find((q) => q.id === id);
+function nextId(q, ans) {
+  const n = q.next;
+  if (n && typeof n === 'object') {
+    const key = Array.isArray(ans) ? null : ans;
+    if (key != null && n[key]) return n[key];
+    if (n['*']) return n['*'];
+  } else if (typeof n === 'string' && n) {
+    return n;
+  }
+  const i = questions.indexOf(q);   // 指定がなければ次の質問
+  return i >= 0 && i < questions.length - 1 ? questions[i + 1].id : 'END';
+}
+function targets(q) {   // この質問から進む可能性のある質問id
+  const set = new Set();
+  if (q.next && typeof q.next === 'object') {
+    q.choices.forEach((c) => set.add(nextId(q, c)));
+    if (q.next['*']) set.add(q.next['*']);
+  } else set.add(nextId(q, null));
+  return [...set];
+}
+function pathLen(id, longest, seen = new Set()) {   // ここから終了までの質問数（最長/最短）
+  if (id === 'END' || seen.has(id)) return 0;
+  const q = qById(id);
+  if (!q) return 0;
+  seen.add(id);
+  const ls = targets(q).map((t) => pathLen(t, longest, new Set(seen)));
+  return 1 + (longest ? Math.max(...ls) : Math.min(...ls));
+}
 
 // ---------- 画面遷移 ----------
 function show(name) {
@@ -319,8 +873,7 @@ function show(name) {
 }
 
 function startSurvey() {
-  session = { startedAt: new Date(), answers: [] };
-  current = 0;
+  session = { startedAt: new Date(), path: [questions[0].id], answers: {} };
   restartVideo();
   renderQuestion();
   show('question');
@@ -328,36 +881,70 @@ function startSurvey() {
 }
 
 function renderQuestion() {
-  const q = questions[current];
-  const n = questions.length;
-  $('progress-text').textContent = `${current + 1} / ${n}`;
-  $('progress-fill').style.width = `${(current / n) * 100}%`;
+  const id = session.path[session.path.length - 1];
+  const q = qById(id);
+  const done = session.path.length - 1;
+  const total = done + pathLen(id, true);
+  $('progress-text').textContent = `${done + 1} 問目`;
+  $('progress-fill').style.width = `${(done / total) * 100}%`;
   $('q-text').textContent = q.text;
-  $('btn-back').textContent = current === 0 ? '← はじめの画面へ' : '← 前の質問へ';
+  $('q-hint').textContent = q.multi ? '複数選べます。選んだら「次へ」を押してください' : '';
+  $('btn-back').textContent = done === 0 ? '← はじめの画面へ' : '← 前の質問へ';
+  const prev = session.answers[id] ? session.answers[id].a : null;
+  const picked = new Set(Array.isArray(prev) ? prev : prev != null ? [prev] : []);
   const box = $('choices');
   box.innerHTML = '';
   q.choices.forEach((c) => {
     const b = document.createElement('button');
     b.className = 'choice';
-    b.textContent = c;
-    if (session.answers[current] && session.answers[current].a === c) b.classList.add('selected');
-    b.addEventListener('click', () => answer(c, b));
+    if (q.multi) { const m = document.createElement('span'); m.className = 'box'; b.appendChild(m); }
+    b.appendChild(document.createTextNode(c));
+    b.dataset.value = c;
+    if (picked.has(c)) b.classList.add('selected');
+    b.addEventListener('click', () => (q.multi ? toggle(q, b) : answerSingle(q, c, b)));
     box.appendChild(b);
   });
+  box.scrollTop = 0;
+  $('btn-next').classList.toggle('show', !!q.multi);
+  if (q.multi) syncMulti();
+}
+
+function syncMulti() {
+  document.querySelectorAll('#choices .choice').forEach((b) => { b.querySelector('.box').textContent = b.classList.contains('selected') ? '✓' : ''; });
+  $('btn-next').disabled = !document.querySelector('#choices .choice.selected');
+}
+function toggle(q, btn) {
+  const on = !btn.classList.contains('selected');
+  btn.classList.toggle('selected', on);
+  if (on) {   // 「特になし」と他の選択肢は同時に選べない
+    const excl = EXCLUSIVE.test(btn.dataset.value);
+    document.querySelectorAll('#choices .choice').forEach((b) => {
+      if (b !== btn && (excl || EXCLUSIVE.test(b.dataset.value))) b.classList.remove('selected');
+    });
+  }
+  syncMulti();
 }
 
 let answering = false;
-function answer(choice, btn) {
+function answerSingle(q, choice, btn) {
   if (answering) return;
   answering = true;
-  const q = questions[current];
-  session.answers[current] = { no: q.no, q: q.text, a: choice, at: new Date() };
-  document.querySelectorAll('.choice').forEach((b) => b.classList.toggle('selected', b === btn));
-  setTimeout(() => {
-    answering = false;
-    if (current < questions.length - 1) { current++; renderQuestion(); }
-    else finish();
-  }, 250);
+  document.querySelectorAll('#choices .choice').forEach((b) => b.classList.toggle('selected', b === btn));
+  setTimeout(() => { answering = false; commit(q, choice); }, 250);
+}
+$('btn-next').addEventListener('click', () => {
+  const q = qById(session.path[session.path.length - 1]);
+  const vals = [...document.querySelectorAll('#choices .choice.selected')].map((b) => b.dataset.value);
+  if (vals.length) commit(q, vals);
+});
+
+function commit(q, ans) {
+  if (!session) return;
+  session.answers[q.id] = { a: ans, at: new Date() };
+  const nx = nextId(q, ans);
+  if (nx === 'END' || !qById(nx) || session.path.includes(nx)) { finish(); return; }
+  session.path.push(nx);
+  renderQuestion();
 }
 
 function finish() {
@@ -369,7 +956,12 @@ function finish() {
     startedAt: fmt(session.startedAt),
     completedAt: fmt(done),
     seconds: Math.round((done - session.startedAt) / 1000),
-    answers: session.answers.map((x) => ({ no: x.no, q: x.q, a: x.a, at: fmt(x.at) })),
+    route: session.path.join('→'),
+    // 戻って答え直した場合に備え、最終的にたどった質問の回答だけを保存する
+    answers: session.path.map((id) => {
+      const q = qById(id), x = session.answers[id];
+      return { no: id, q: q.text, a: Array.isArray(x.a) ? x.a.join(MULTI_SEP) : x.a, at: fmt(x.at) };
+    }),
   });
   saveJSON(KEY_R, responses);
   session = null;
@@ -392,16 +984,50 @@ function resetIdle() {
 
 $('btn-start').addEventListener('click', startSurvey);
 $('btn-back').addEventListener('click', () => {
-  if (current > 0) { current--; renderQuestion(); }
+  if (session && session.path.length > 1) { session.path.pop(); renderQuestion(); }
   else backToStart();
 });
 document.addEventListener('pointerdown', resetIdle);
 
-// ---------- 動画 ----------
+// ================= 動画 =================
 const video = $('video');
 const demo = $('demo');
+const dctx = demo.getContext('2d');
 let videoSource = 'demo';   // 'uploaded' | 'file' | 'demo'
 let objectUrl = null;
+let demoT = 0, demoPlaying = false, demoLast = 0, demoRaf = 0;
+
+function sizeDemo() {
+  const r = demo.getBoundingClientRect();
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  demo.width = Math.max(1, Math.round(r.width * dpr));
+  demo.height = Math.max(1, Math.round(r.height * dpr));
+  drawDemo();
+}
+function drawDemo() {
+  const w = demo.width, h = demo.height;
+  dctx.setTransform(1, 0, 0, 1, 0, 0);
+  dctx.fillStyle = '#000'; dctx.fillRect(0, 0, w, h);
+  const s = Math.min(w / DemoAnim.W, h / DemoAnim.H);
+  dctx.setTransform(s, 0, 0, s, (w - DemoAnim.W * s) / 2, (h - DemoAnim.H * s) / 2);
+  DemoAnim.draw(dctx, demoT);
+}
+function demoTick(now) {
+  if (!demoPlaying) return;
+  demoT += Math.min(0.1, (now - demoLast) / 1000);
+  demoLast = now;
+  if (demoT >= DemoAnim.DURATION) { demoT = DemoAnim.DURATION; demoPlaying = false; updatePauseButton(); }
+  drawDemo();
+  if (demoPlaying) demoRaf = requestAnimationFrame(demoTick);
+}
+function demoPlay() {
+  if (demoT >= DemoAnim.DURATION) demoT = 0;
+  demoPlaying = true; demoLast = performance.now();
+  cancelAnimationFrame(demoRaf); demoRaf = requestAnimationFrame(demoTick);
+  updatePauseButton();
+}
+function demoPause() { demoPlaying = false; cancelAnimationFrame(demoRaf); updatePauseButton(); }
+window.addEventListener('resize', () => { if (videoSource === 'demo') sizeDemo(); });
 
 function idb() {
   return new Promise((resolve, reject) => {
@@ -423,6 +1049,7 @@ async function idbOp(mode, fn) {
 
 function useVideo(src, kind) {
   videoSource = kind;
+  demoPause();
   video.hidden = false; demo.style.display = 'none';
   video.src = src;
   updateVideoStatus();
@@ -431,9 +1058,11 @@ function useDemo() {
   videoSource = 'demo';
   video.hidden = true; video.removeAttribute('src'); video.load();
   demo.style.display = '';
+  sizeDemo();
+  demoPlay();
   updateVideoStatus();
 }
-// 同じフォルダに video.mp4 を置いた場合もそれを使う（複数台に配布するとき用）
+// 同じフォルダに video.mp4 を置いた場合もそれを使う（複数台に配布するとき用）。無ければ内蔵アニメ
 video.addEventListener('error', () => { if (videoSource === 'file') useDemo(); });
 
 async function loadVideo() {
@@ -445,12 +1074,7 @@ async function loadVideo() {
 }
 
 function restartVideo() {
-  if (videoSource === 'demo') {
-    demo.querySelectorAll('.anim').forEach((el) => { el.style.animation = 'none'; el.getBoundingClientRect(); el.style.animation = ''; });
-    demo.classList.remove('paused');
-    updatePauseButton();
-    return;
-  }
+  if (videoSource === 'demo') { demoT = 0; demoPlay(); return; }
   try { video.currentTime = 0; } catch (e) {}
   playVideo();
 }
@@ -458,22 +1082,9 @@ function playVideo() {
   const p = video.play();
   if (p && p.catch) p.catch(() => {});
 }
-
-// 最後まで再生したら止まる（再生ボタンで最初から）
-function demoEnded() {
-  const a = $('fader').getAnimations ? $('fader').getAnimations()[0] : null;
-  return !!a && a.playState === 'finished';
-}
-$('fader').addEventListener('animationend', updatePauseButton);
-
-function isPaused() {
-  return videoSource === 'demo' ? (demoEnded() || demo.classList.contains('paused')) : video.paused;
-}
+function isPaused() { return videoSource === 'demo' ? !demoPlaying : video.paused; }
 function togglePause() {
-  if (videoSource === 'demo') {
-    if (demoEnded()) { restartVideo(); return; }
-    demo.classList.toggle('paused'); updatePauseButton(); return;
-  }
+  if (videoSource === 'demo') { if (demoPlaying) demoPause(); else demoPlay(); return; }
   if (video.paused) playVideo(); else video.pause();
 }
 function updatePauseButton() {
@@ -488,7 +1099,7 @@ $('btn-replay').addEventListener('click', restartVideo);
 function updateVideoStatus() {
   $('video-status').textContent =
     videoSource === 'uploaded' ? 'アップロードした動画' :
-    videoSource === 'file' ? 'video.mp4（同じフォルダのファイル）' : '仮の動画（車のアニメーション）';
+    videoSource === 'file' ? 'video.mp4（同じフォルダのファイル）' : '内蔵のアニメーション（video.mp4 と同じ内容）';
 }
 
 $('inp-video').addEventListener('change', async (e) => {
@@ -510,18 +1121,53 @@ $('btn-video-reset').addEventListener('click', async () => {
   useVideo('video.mp4', 'file');
 });
 
-// ---------- 質問の差し替え ----------
+// ================= 質問の差し替え（Excel） =================
+// A=No, B=質問, C=選択肢（、区切り）, D=複数選択（○）, E=次の質問
+function toId(v) {
+  const s = String(v ?? '').trim().replace(/^[QqＱｑ]/, '');
+  if (/^(終了|おわり|END)$/i.test(s)) return 'END';
+  const n = Number(s.replace(/[０-９]/g, (d) => String.fromCharCode(d.charCodeAt(0) - 0xFEE0)));
+  return Number.isFinite(n) && s !== '' ? 'Q' + n : null;
+}
 function rowsToQuestions(rows) {
-  const qs = [];
-  rows.forEach((r) => {
+  const qs = [], errors = [];
+  rows.forEach((r, i) => {
     if (!r || r.length < 3) return;
-    const no = Number(r[0]);
+    const id = toId(r[0]);
     const text = String(r[1] ?? '').trim();
     const choices = String(r[2] ?? '').split(/[、,，\n]/).map((s) => s.trim()).filter(Boolean);
-    if (!Number.isFinite(no) || String(r[0]).trim() === '' || !text || choices.length === 0) return; // 見出し行・空行は飛ばす
-    qs.push({ no, text, choices });
+    if (!id || id === 'END' || !text || choices.length === 0) return; // 見出し行・空行は飛ばす
+    const q = { id, text, choices };
+    if (/^(○|〇|◯|o|O|1|yes|はい|複数)/i.test(String(r[3] ?? '').trim())) q.multi = true;
+    const e = String(r[4] ?? '').trim();
+    if (e) {
+      const parts = e.split(/[、,，\n]/).map((s) => s.trim()).filter(Boolean);
+      const map = {};
+      let single = null;
+      parts.forEach((p) => {
+        const m = p.split(/→|->|＞|>|⇒/);
+        if (m.length >= 2) {
+          const key = m[0].trim(), to = toId(m[m.length - 1]);
+          if (!to) { errors.push(`${i + 1}行目：「${p}」の行き先がわかりません`); return; }
+          if (/^(それ以外|その他|ほか|他|\*)$/.test(key)) map['*'] = to;
+          else if (!choices.includes(key)) errors.push(`${i + 1}行目：「${key}」は選択肢にありません`);
+          else map[key] = to;
+        } else {
+          const to = toId(p);
+          if (!to) errors.push(`${i + 1}行目：E列「${p}」がわかりません`); else single = to;
+        }
+      });
+      if (Object.keys(map).length) { if (single && !map['*']) map['*'] = single; q.next = map; }
+      else if (single) q.next = single;
+    }
+    qs.push(q);
   });
-  return qs;
+  const ids = new Set(qs.map((q) => q.id));
+  qs.forEach((q) => {
+    const tos = typeof q.next === 'string' ? [q.next] : q.next ? Object.values(q.next) : [];
+    tos.forEach((to) => { if (to !== 'END' && !ids.has(to)) errors.push(`No.${q.id.slice(1)}：行き先のNo.${to.slice(1)}がありません`); });
+  });
+  return { qs, errors };
 }
 
 $('inp-questions').addEventListener('change', async (e) => {
@@ -532,38 +1178,41 @@ $('inp-questions').addEventListener('change', async (e) => {
   try {
     const wb = XLSX.read(await file.arrayBuffer(), { type: 'array' });
     const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, defval: '' });
-    const qs = rowsToQuestions(rows);
+    const { qs, errors } = rowsToQuestions(rows);
     if (qs.length === 0) { alert('質問が見つかりませんでした。A列＝No、B列＝質問、C列＝選択肢 の形式か確認してください。'); return; }
-    if (!confirm(`${qs.length}問の質問に差し替えます。よろしいですか？`)) return;
+    if (errors.length) { alert('次の点を直してから、もう一度読み込んでください。\n\n' + errors.join('\n')); return; }
     questions = qs;
+    const lo = pathLen(qs[0].id, false), hi = pathLen(qs[0].id, true);
+    if (!confirm(`${qs.length}問（回答者ごとに${lo === hi ? lo : lo + '〜' + hi}問）に差し替えます。よろしいですか？`)) {
+      questions = loadJSON(KEY_Q, DEFAULT_QUESTIONS); return;
+    }
     saveJSON(KEY_Q, qs);
     renderAdmin();
     backToStart();
   } catch (err) { alert('ファイルを読み込めませんでした：' + err); }
 });
 $('btn-q-reset').addEventListener('click', () => {
-  if (!confirm('初期の質問（5問）に戻しますか？')) return;
+  if (!confirm('初期の質問に戻しますか？')) return;
   questions = DEFAULT_QUESTIONS;
   localStorage.removeItem(KEY_Q);
   renderAdmin();
   backToStart();
 });
 
-// ---------- CSV ----------
+// ================= CSV =================
+const colKey = (a) => (typeof a.no === 'number' ? `Q${a.no} ${a.q}` : `${a.no} ${a.q}`);
 function toCSV() {
   const responses = loadJSON(KEY_R, []);
-  // 質問を途中で差し替えても列がずれないよう、質問No＋質問文で列を作る
-  const cols = [];
-  responses.forEach((r) => r.answers.forEach((a) => {
-    const key = `Q${a.no} ${a.q}`;
-    if (!cols.includes(key)) cols.push(key);
-  }));
-  const header = ['回答ID', '調査地点', '開始時刻', '回答時刻', '所要時間(秒)', ...cols];
+  // 列は「質問No＋質問文」。今の質問の順に並べ、以前の質問で集めた回答があれば後ろに足す
+  const cols = questions.map((q) => `${q.id} ${q.text}`);
+  responses.forEach((r) => r.answers.forEach((a) => { const k = colKey(a); if (!cols.includes(k)) cols.push(k); }));
+  const header = ['回答ID', '調査地点', '開始時刻', '回答時刻', '所要時間(秒)', '回答した質問', ...cols];
   const lines = [header];
   responses.forEach((r) => {
     const map = {};
-    r.answers.forEach((a) => { map[`Q${a.no} ${a.q}`] = a.a; });
-    lines.push([r.id, r.site, r.startedAt, r.completedAt, r.seconds, ...cols.map((c) => map[c] ?? '')]);
+    r.answers.forEach((a) => { map[colKey(a)] = a.a; });
+    const route = r.route || r.answers.map((a) => (typeof a.no === 'number' ? 'Q' + a.no : a.no)).join('→');
+    lines.push([r.id, r.site, r.startedAt, r.completedAt, r.seconds, route, ...cols.map((c) => map[c] ?? '')]);
   });
   const esc = (v) => { const s = String(v ?? ''); return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
   return '﻿' + lines.map((l) => l.map(esc).join(',')).join('\r\n');
@@ -587,21 +1236,34 @@ $('btn-clear').addEventListener('click', () => {
   renderAdmin();
 });
 
-// ---------- 管理画面 ----------
+// ================= 管理画面 =================
+const label = (id) => (id === 'END' ? '終了' : id);
+function flowText(q) {
+  if (q.next && typeof q.next === 'object') {
+    const parts = q.choices.filter((c) => q.next[c]).map((c) => `${c}→${label(q.next[c])}`);
+    if (q.next['*']) parts.push(`それ以外→${label(q.next['*'])}`);
+    return parts.join('、');
+  }
+  return '→ ' + label(nextId(q, null));
+}
 function renderAdmin() {
   $('resp-count').textContent = loadJSON(KEY_R, []).length;
   $('inp-site').value = localStorage.getItem(KEY_SITE) || '';
   updateVideoStatus();
-  const ol = $('q-preview');
-  ol.innerHTML = '';
+  const ul = $('q-preview');
+  ul.innerHTML = '';
   questions.forEach((q) => {
     const li = document.createElement('li');
-    const t = document.createElement('span');
-    t.textContent = q.text;
-    li.append(t, document.createElement('br'), q.choices.join(' / '));
-    ol.appendChild(li);
+    const t = document.createElement('b');
+    t.textContent = `${q.id}　${q.text}${q.multi ? '（複数選択）' : ''}`;
+    const f = document.createElement('span');
+    f.className = 'flow';
+    f.textContent = flowText(q);
+    li.append(t, document.createElement('br'), q.choices.join(' / '), document.createElement('br'), f);
+    ul.appendChild(li);
   });
-  $('start-note').textContent = `全${questions.length}問・1分ほどで終わります`;
+  const lo = pathLen(questions[0].id, false), hi = pathLen(questions[0].id, true);
+  $('start-note').textContent = `全${lo === hi ? lo : lo + '〜' + hi}問・1分ほどで終わります`;
 }
 $('btn-admin').addEventListener('click', () => { renderAdmin(); $('admin').classList.add('open'); });
 $('btn-close').addEventListener('click', () => $('admin').classList.remove('open'));
