@@ -603,7 +603,7 @@ const DemoAnim = (() => {
     });
     const k = easeOut(seg(t, 10.0, 10.6));
     c.save();
-    c.translate(800, 500 + (1 - k) * 140);
+    c.translate(980, 500 + (1 - k) * 140);
     c.rotate(-0.05);
     // 手のひらと指（後ろ側）
     c.fillStyle = '#e8b892';
@@ -772,11 +772,11 @@ const DemoAnim = (() => {
       const al = vis(t, a + 0.15, b, 0.3);
       if (al <= 0) return;
       c.save(); c.globalAlpha = al;
-      c.font = `700 32px ${FONT}`;
-      const w = c.measureText(s).width + 48;
-      const y = (t >= 7.0 && t < 10.0) || (t >= 21.0 && t < 25.5) ? 790 : 40;
-      rr(c, 36, y, w, 62, 31); c.fillStyle = 'rgba(20,28,38,.78)'; c.fill();
-      txt(c, s, 60, y + 43, 32, '#fff');
+      c.font = `700 46px ${FONT}`;
+      const w = c.measureText(s).width + 64;
+      const y = (t >= 7.0 && t < 10.0) || (t >= 14.5 && t < 25.5) ? 770 : 34;
+      rr(c, 32, y, w, 84, 42); c.fillStyle = 'rgba(20,28,38,.8)'; c.fill();
+      txt(c, s, 64, y + 59, 46, '#fff');
       c.restore();
     });
     if (t >= 3.0) {
