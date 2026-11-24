@@ -1011,6 +1011,8 @@ const dctx = demo.getContext('2d');
 let videoSource = 'demo';   // 'uploaded' | 'file' | 'demo'
 let objectUrl = null;
 let demoT = 0, demoPlaying = false, demoLast = 0, demoRaf = 0;
+// video.mp4 を差し替えたら、この日付も変える（iPadが古い動画を覚えていても、新しい動画を読み直させるため）
+const VIDEO_URL = 'video.mp4?v=20261124-3';
 let autoPlayed = false;   // 自動再生はページを開いてから1回だけ。2回目以降はボタンで再生
 
 function sizeDemo() {
@@ -1087,7 +1089,7 @@ async function loadVideo() {
     const blob = await idbOp('readonly', (s) => s.get('video'));
     if (blob) { objectUrl = URL.createObjectURL(blob); useVideo(objectUrl, 'uploaded'); return; }
   } catch (e) { /* IndexedDBが使えない環境ではスキップ */ }
-  useVideo('video.mp4', 'file');
+  useVideo(VIDEO_URL, 'file');
 }
 
 function restartVideo() {
@@ -1135,7 +1137,7 @@ $('btn-video-reset').addEventListener('click', async () => {
   if (!confirm('アップロードした動画を削除しますか？')) return;
   try { await idbOp('readwrite', (s) => s.delete('video')); } catch (e) {}
   if (objectUrl) { URL.revokeObjectURL(objectUrl); objectUrl = null; }
-  useVideo('video.mp4', 'file');
+  useVideo(VIDEO_URL, 'file');
 });
 
 // ================= 質問の差し替え（Excel） =================
