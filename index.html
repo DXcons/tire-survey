@@ -213,11 +213,21 @@
 // 固有の企業名・ブランド・実在車種は描かない方針（SSはグレー、車は汎用コンパクトカー）。
 const DemoAnim = (() => {
   const W = 1600, H = 900;
-  // 自動点検の場面（台本の7〜10秒）は0.8倍速で見せる
-  const SLOW_A = 7.0, SLOW_B = 10.0, SLOW_RATE = 0.8;
-  const SLOW_EXTRA = (SLOW_B - SLOW_A) * (1 / SLOW_RATE - 1);
+  // 再生速度を変える区間 [台本の開始秒, 終了秒, 再生速度]
+  //   自動点検の場面（7〜10秒）は0.8倍速。そのうち点検結果の表示（9.2〜9.7秒）はさらに0.6秒長く見せる
+  const SLOW_SEGS = [[7.0, 9.2, 0.8], [9.2, 9.7, 0.5 / (0.5 / 0.8 + 0.6)], [9.7, 10.0, 0.8]];
+  const SLOW_EXTRA = SLOW_SEGS.reduce((sum, [a, b, r]) => sum + (b - a) * (1 / r - 1), 0);
   const DURATION = 30 + SLOW_EXTRA;
-  const toScript = (t) => (t < SLOW_A ? t : t < SLOW_A + (SLOW_B - SLOW_A) / SLOW_RATE ? SLOW_A + (t - SLOW_A) * SLOW_RATE : t - SLOW_EXTRA);
+  const toScript = (t) => {
+    let shift = 0;   // ここまでに伸ばした秒数
+    for (const [a, b, r] of SLOW_SEGS) {
+      const start = a + shift, len = (b - a) / r;
+      if (t < start) return t - shift;
+      if (t < start + len) return a + (t - start) * r;
+      shift += len - (b - a);
+    }
+    return t - shift;
+  };
   const FONT = '"Hiragino Sans","Hiragino Kaku Gothic ProN","Yu Gothic UI","Yu Gothic","Meiryo",sans-serif';
   const PI = Math.PI;
   const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
