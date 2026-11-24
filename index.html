@@ -155,7 +155,7 @@
     </div>
 
     <div id="scr-thanks" class="screen">
-      <p class="lead">ご協力ありがとうございました。</p>
+      <p class="lead">ご協力ありがとうございました。<br>iPadをスタッフにお渡しください。</p>
       <p class="note">まもなく最初の画面に戻ります。</p>
     </div>
 
@@ -798,15 +798,15 @@ const DEFAULT_QUESTIONS = [
   { id: 'Q1', text: '車検以外で、お車やタイヤの点検を普段おこないますか？',
     choices: ['はい', 'いいえ'], next: { 'はい': 'Q2', 'いいえ': 'Q3' } },
   { id: 'Q2', text: 'ご自身が感じる、タイヤ点検の難しいポイントはどこですか？',
-    choices: ['傷の程度（使ってよいか）', '溝の程度', '耐用年数', '内圧の測定', '特になし'], next: 'Q3' },
+    choices: ['傷の程度（使ってよいか）', '溝の程度（まだ使えるか）', '耐用年数の確認', '内圧の測定', '特になし'], next: 'Q3' },
   { id: 'Q3', text: '動画のサービスをどう思いますか？',
-    choices: ['是非つかいたい', '無料なら嬉しい', '興味ない', '嫌だ'], next: { '嫌だ': 'Q5', '*': 'Q4' } },
+    choices: ['是非つかいたい', '無料なら使いたい', '興味ない', '嫌だ'], next: { '嫌だ': 'Q5', '*': 'Q4' } },
   { id: 'Q4', text: '動画のサービスがあるお店を、優先して使いたいと思いますか？',
     choices: ['はい', 'いいえ'], next: 'Q6' },
   { id: 'Q5', text: '動画のサービスで、嫌な点はどこですか？', multi: true,
     choices: ['撮影される点', '不安を煽られる', 'タイヤ購入に誘導されそう'], next: 'END' },
   { id: 'Q6', text: 'このようなサービスを受けられると嬉しいのは、どんな場所ですか？', multi: true,
-    choices: ['ガソリンスタンド', '高速道路の入口', '高速道路のサービスエリア', 'スーパーや出先の駐車場', 'ご自身のスマホアプリ'], next: 'Q7' },
+    choices: ['ガソリンスタンド', '高速道路の入口', '高速道路サービスエリア', 'スーパーや出先の駐車場', 'ご自身のスマホアプリ'], next: 'Q7' },
   { id: 'Q7', text: '動画のサービスで、追加で欲しい機能はありますか？', multi: true,
     choices: ['タイヤの買い替え時期の提案', '最適なタイヤの提案', '特になし'], next: 'END' },
 ];
@@ -874,7 +874,7 @@ function show(name) {
 
 function startSurvey() {
   session = { startedAt: new Date(), path: [questions[0].id], answers: {} };
-  restartVideo();
+  if (!autoPlayed) { autoPlayed = true; restartVideo(); }
   renderQuestion();
   show('question');
   resetIdle();
@@ -996,6 +996,7 @@ const dctx = demo.getContext('2d');
 let videoSource = 'demo';   // 'uploaded' | 'file' | 'demo'
 let objectUrl = null;
 let demoT = 0, demoPlaying = false, demoLast = 0, demoRaf = 0;
+let autoPlayed = false;   // 自動再生はページを開いてから1回だけ。2回目以降はボタンで再生
 
 function sizeDemo() {
   const r = demo.getBoundingClientRect();
@@ -1058,8 +1059,9 @@ function useDemo() {
   videoSource = 'demo';
   video.hidden = true; video.removeAttribute('src'); video.load();
   demo.style.display = '';
+  demoT = 0;
   sizeDemo();
-  demoPlay();
+  updatePauseButton();
   updateVideoStatus();
 }
 // 同じフォルダに video.mp4 を置いた場合もそれを使う（複数台に配布するとき用）。無ければ内蔵アニメ
