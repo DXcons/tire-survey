@@ -212,7 +212,12 @@
 // サービス紹介アニメーション（30秒）。DemoAnim.draw(ctx, 秒) で 1600x900 の座標系に1コマ描く。
 // 固有の企業名・ブランド・実在車種は描かない方針（SSはグレー、車は汎用コンパクトカー）。
 const DemoAnim = (() => {
-  const W = 1600, H = 900, DURATION = 30;
+  const W = 1600, H = 900;
+  // 自動点検の場面（台本の7〜10秒）は0.8倍速で見せる
+  const SLOW_A = 7.0, SLOW_B = 10.0, SLOW_RATE = 0.8;
+  const SLOW_EXTRA = (SLOW_B - SLOW_A) * (1 / SLOW_RATE - 1);
+  const DURATION = 30 + SLOW_EXTRA;
+  const toScript = (t) => (t < SLOW_A ? t : t < SLOW_A + (SLOW_B - SLOW_A) / SLOW_RATE ? SLOW_A + (t - SLOW_A) * SLOW_RATE : t - SLOW_EXTRA);
   const FONT = '"Hiragino Sans","Hiragino Kaku Gothic ProN","Yu Gothic UI","Yu Gothic","Meiryo",sans-serif';
   const PI = Math.PI;
   const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
@@ -753,7 +758,7 @@ const DemoAnim = (() => {
   const CUTS = [3.0, 10.0, 14.5, 21.0, 25.5];
 
   function draw(c, t) {
-    t = clamp(t, 0, DURATION);
+    t = toScript(clamp(t, 0, DURATION));
     c.save();
     c.beginPath(); c.rect(0, 0, W, H); c.clip();
     if (t < 3.0) sceneTitle(c, t);
