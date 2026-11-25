@@ -214,11 +214,10 @@
 const DemoAnim = (() => {
   const W = 1600, H = 900;
   // 再生速度を変える区間 [台本の開始秒, 終了秒, 再生速度]
-  //   自動点検の場面（7〜10秒）は0.8倍速。そのうち点検結果の表示（9.2〜9.7秒）はさらに0.6秒長く見せる
-  //   「適正な空気圧になりました」（24.3〜24.9秒）は0.5秒長く見せる
-  const SLOW_SEGS = [[7.0, 9.2, 0.8], [9.2, 9.7, 0.5 / (0.5 / 0.8 + 0.6)], [9.7, 10.0, 0.8], [24.3, 24.9, 0.6 / (0.6 + 0.5)]];
+  //   「適正な空気圧になりました」（27.7〜28.3秒）は0.5秒長く見せる
+  const SLOW_SEGS = [[27.7, 28.3, 0.6 / (0.6 + 0.5)]];
   const SLOW_EXTRA = SLOW_SEGS.reduce((sum, [a, b, r]) => sum + (b - a) * (1 / r - 1), 0);
-  const DURATION = 30 + SLOW_EXTRA;
+  const DURATION = 30 + 3.4 + SLOW_EXTRA;   // 3.4＝自動点検の場面を伸ばした秒数（下の SHIFT と同じ）
   const toScript = (t) => {
     let shift = 0;   // ここまでに伸ばした秒数
     for (const [a, b, r] of SLOW_SEGS) {
@@ -544,13 +543,18 @@ const DemoAnim = (() => {
     txt(c, 'DEMONSTRATION MOVIE', W / 2, 300, 40, '#9aa3ad', { align: 'center' });
     txt(c, 'タイヤ自動点検サービス', W / 2, 430, 96, '#ffffff', { align: 'center' });
     c.fillStyle = C.cyan; c.fillRect(W / 2 - 60, 480, 120, 6);
-    txt(c, '給油のついでに、タイヤもチェック', W / 2, 570, 44, '#d5dbe1', { align: 'center', weight: 500 });
+    txt(c, '給油のついでに、溝・傷・空気圧をチェック', W / 2, 570, 44, '#d5dbe1', { align: 'center', weight: 500 });
     c.restore();
     c.save(); c.globalAlpha = seg(t, 0.5, 1.1);
     txt(c, '※ サービスのイメージ映像です', W / 2, 800, 30, '#8c96a1', { align: 'center', weight: 500 });
     c.restore();
   }
 
+  // 自動点検の場面：入店 → スキャン → 解析結果（溝 OK → 傷 OK → 内圧 NG）→ 空気圧不足の表示
+  const AR_END = 13.4;                 // この場面の終わり（台本の秒）
+  const SHIFT = AR_END - 10.0;         // 後の場面はこの秒数だけ後ろにずれる
+  const CHECKS = [[9.2, '溝の深さ', true], [10.0, '傷の状態', true], [10.8, '内圧（空気圧）', false]];
+  const NG_AT = 10.8, ALERT_AT = 11.6;
   function sceneArrive(c, t) {
     const k = easeOut(seg(t, 3.2, 7.0));
     const carX = lerp(-600, 600, k);
@@ -558,9 +562,9 @@ const DemoAnim = (() => {
     c.save();
     camera(c, lerp(800, 840, zoom), lerp(450, 560, zoom), lerp(1, 1.18, zoom));
     const scanOn = t > 7.2;
-    drawWorld(c, t, { carX, wheelAng: (carX + 600) / 44, driver: true, scanOn, scanCone: vis(t, 7.3, 10.2, 0.4) });
+    drawWorld(c, t, { carX, wheelAng: (carX + 600) / 44, driver: true, scanOn, scanCone: vis(t, 7.3, AR_END + 0.2, 0.4) });
     // スキャンライン
-    const sk = seg(t, 7.5, 8.7);
+    const sk = seg(t, 7.5, 9.0);
     if (sk > 0 && sk < 1) {
       const sx = lerp(carX - 10, carX + 530, sk);
       const lg = c.createLinearGradient(sx - 40, 0, sx + 6, 0);
@@ -569,31 +573,50 @@ const DemoAnim = (() => {
       c.fillStyle = '#bff3ff'; c.fillRect(sx, 470, 4, 232);
     }
     // ホイールの枠
-    const ba = seg(t, 8.5, 8.8);
+    const ba = seg(t, 8.8, 9.1);
     if (ba > 0) {
-      const bad = t > 9.0;
-      const blink = bad ? (Math.sin((t - 9) * 14) > -0.3 ? 1 : 0.35) : 1;
+      const bad = t > NG_AT;
+      const blink = bad ? (Math.sin((t - NG_AT) * 14) > -0.3 ? 1 : 0.35) : 1;
       c.save(); c.globalAlpha = ba;
       brackets(c, carX + 420, 656, 64, C.cyan, 6);
       c.globalAlpha = ba * blink;
       brackets(c, carX + 112, 656, 64, bad ? C.red : C.cyan, bad ? 8 : 6);
       c.restore();
-      if (bad) {
-        c.save(); c.globalAlpha = seg(t, 9.0, 9.25);
-        fillRR(c, carX + 20, 526, 190, 48, 10, C.red);
-        txt(c, '空気圧 低下', carX + 115, 560, 28, '#fff', { align: 'center' });
-        c.restore();
-      }
     }
     c.restore();
-    panel(c, 'タイヤ自動点検中…', 70, vis(t, 7.3, 9.0, 0.25));
-    if (t > 9.0) {
-      const a = seg(t, 9.0, 9.3);
+    panel(c, 'タイヤ自動点検中…', 70, vis(t, 7.3, ALERT_AT, 0.25));
+    // 解析結果の吹き出し（1項目ずつ表示）
+    const ga = seg(t, 9.0, 9.25);
+    if (ga > 0) {
+      const bx = 50, by = 190, bw = 500;
+      const bh = 84 + CHECKS.reduce((h, [ts]) => h + 62 * easeOut(seg(t, ts, ts + 0.25)), 0);   // 項目が出るたびに伸びる
+      c.save(); c.globalAlpha = ga;
+      c.shadowColor = 'rgba(0,0,0,.25)'; c.shadowBlur = 16; c.shadowOffsetY = 4;
+      rr(c, bx, by, bw, bh, 28); c.fillStyle = '#fff'; c.fill();
+      c.beginPath(); c.moveTo(bx + bw - 140, by + bh - 2); c.lineTo(640, 494); c.lineTo(bx + bw - 80, by + bh - 2); c.closePath(); c.fill();
+      c.shadowColor = 'transparent';
+      txt(c, 'タイヤの解析結果', bx + 32, by + 50, 30, C.sub);
+      CHECKS.forEach(([ts, label, ok], i) => {
+        const a = seg(t, ts, ts + 0.25);
+        if (a <= 0) return;
+        const y = by + 76 + i * 62;
+        c.save(); c.globalAlpha = ga * a; c.translate((1 - easeOut(a)) * -24, 0);
+        txt(c, label, bx + 32, y + 41, 38, C.ink);
+        const blink = !ok && Math.sin((t - NG_AT) * 14) < -0.3 ? 0.55 : 1;
+        c.globalAlpha = ga * a * blink;
+        fillRR(c, bx + bw - 150, y, 118, 54, 27, ok ? C.green : C.red);
+        txt(c, ok ? 'OK' : 'NG', bx + bw - 91, y + 40, 34, '#fff', { align: 'center' });
+        c.restore();
+      });
+      c.restore();
+    }
+    if (t > ALERT_AT) {
+      const a = seg(t, ALERT_AT, ALERT_AT + 0.3);
       c.save(); c.globalAlpha = a;
-      const x = 330, y = 60, w = 940, h = 150;
+      const x = 330, y = 34, w = 940, h = 150;
       rr(c, x, y, w, h, 24); c.fillStyle = 'rgba(255,255,255,.96)'; c.fill();
       c.strokeStyle = C.red; c.lineWidth = 6; c.stroke();
-      txt(c, '⚠ 右後輪の空気圧が低下しています', x + 50, y + 66, 46, '#c62828');
+      txt(c, '⚠ 右後輪の空気圧が不足しています', x + 50, y + 66, 46, '#c62828');
       txt(c, '180kPa（基準 240kPa）', x + 50, y + 122, 34, C.sub, { weight: 500 });
       c.restore();
     }
@@ -637,7 +660,7 @@ const DemoAnim = (() => {
       circle(c, -176, y + 44, 15, '#fff'); circle(c, -176, y + 44, 7, '#5f6b78');
       txt(c, 'タイヤ点検システム', -142, y + 54, 22, '#555b62', { weight: 500 });
       txt(c, '今', 198, y + 54, 22, '#80868d', { align: 'right', weight: 500 });
-      ['1番レーンの車：右後輪の空気圧が', '低下しています（180kPa）。', 'お客様へのご案内をお願いします。'].forEach((s, i) => txt(c, s, -198, y + 100 + i * 32, 23, '#111'));
+      ['1番レーンの車：右後輪の空気圧が', '不足しています（180kPa）。', 'お客様へのご案内をお願いします。'].forEach((s, i) => txt(c, s, -198, y + 100 + i * 32, 23, '#111'));
       c.restore();
     }
     // 点検結果カード
@@ -645,7 +668,7 @@ const DemoAnim = (() => {
     if (dk > 0) {
       const y0 = -170 + (1 - dk) * 30;
       c.save(); c.globalAlpha = dk;
-      fillRR(c, -220, y0, 440, 420, 28, 'rgba(255,255,255,.97)');
+      fillRR(c, -220, y0, 440, 470, 28, 'rgba(255,255,255,.97)');
       txt(c, '点検結果（1番レーン）', 0, y0 + 50, 26, C.ink, { align: 'center' });
       fillRR(c, -56, y0 + 80, 112, 250, 44, C.car);
       fillRR(c, -40, y0 + 120, 80, 40, 10, C.glass);
@@ -658,8 +681,13 @@ const DemoAnim = (() => {
         const left = tx < 0;
         txt(c, v, left ? tx - 14 : tx + 30, ty + 34, 30, bad ? C.red : C.green, { align: left ? 'right' : 'left' });
       });
-      txt(c, '低下', 120, y0 + 330, 22, C.red, { align: 'center' });
-      txt(c, '単位：kPa　基準 240kPa', 0, y0 + 396, 20, C.sub, { align: 'center', weight: 500 });
+      txt(c, '不足', 120, y0 + 330, 22, C.red, { align: 'center' });
+      [['溝', 'OK', C.green, -190], ['傷', 'OK', C.green, -60], ['空気圧', 'NG', C.red, 60]].forEach(([n, v, col, x]) => {
+        txt(c, n, x, y0 + 394, 24, C.ink);
+        c.font = `700 24px ${FONT}`;
+        txt(c, v, x + c.measureText(n).width + 10, y0 + 394, 26, col);
+      });
+      txt(c, '単位：kPa　基準 240kPa', 0, y0 + 442, 20, C.sub, { align: 'center', weight: 500 });
       c.restore();
     }
     // 親指（手前）
@@ -681,7 +709,7 @@ const DemoAnim = (() => {
       staff: { x: staffX, dir: 1, walk: walking ? (t - 14.6) * 9 : null, armR: lerp(0.1, -1.35, raise), phone: true, phoneGlow: true },
     });
     c.restore();
-    bubble(c, 150, 80, 600, 170, ['右後ろのタイヤの空気圧が', '下がっているようです。'], 480, 320, vis(t, 16.3, 18.7, 0.25));
+    bubble(c, 150, 60, 600, 230, ['溝と傷は問題ありませんが、', '右後ろのタイヤの空気圧が', '不足しています。'], 480, 320, vis(t, 16.3, 18.7, 0.25));
     bubble(c, 830, 80, 600, 170, ['えっ、気づかなかった！', '見てもらえますか？'], 830, 320, vis(t, 18.7, 21.2, 0.25));
   }
 
@@ -753,31 +781,34 @@ const DemoAnim = (() => {
       c.save(); c.globalAlpha = a;
       c.fillStyle = 'rgba(13,20,30,.72)'; c.fillRect(0, 300, W, 250);
       txt(c, '給油のついでに、タイヤも安心。', W / 2, 410, 68, '#fff', { align: 'center' });
-      txt(c, 'タイヤ自動点検サービス（イメージ）', W / 2, 490, 34, '#cfd6dd', { align: 'center', weight: 500 });
+      txt(c, '溝・傷・空気圧をまとめて自動点検（イメージ）', W / 2, 490, 34, '#cfd6dd', { align: 'center', weight: 500 });
       c.restore();
     }
   }
 
   const STEPS = [
     [3.0, 7.0, '① 給油のためにスタンドへ'],
-    [7.0, 10.0, '② カメラがタイヤを自動で点検'],
-    [10.0, 14.5, '③ スタッフのスマホに通知'],
-    [14.5, 21.0, '④ スタッフからお客様にお知らせ'],
-    [21.0, 25.5, '⑤ その場で空気を補充'],
-    [25.5, 27.0, '⑥ 安心して出発'],
+    [7.0, AR_END, '② タイヤの溝・傷・空気圧を自動で点検'],
+    [10.0 + SHIFT, 14.5 + SHIFT, '③ スタッフのスマホに通知'],
+    [14.5 + SHIFT, 21.0 + SHIFT, '④ スタッフからお客様にお知らせ'],
+    [21.0 + SHIFT, 25.5 + SHIFT, '⑤ その場で空気を補充'],
+    [25.5 + SHIFT, 27.0 + SHIFT, '⑥ 安心して出発'],
   ];
-  const CUTS = [3.0, 10.0, 14.5, 21.0, 25.5];
+  const CUTS = [3.0, AR_END, 14.5 + SHIFT, 21.0 + SHIFT, 25.5 + SHIFT];
 
   function draw(c, t) {
     t = toScript(clamp(t, 0, DURATION));
     c.save();
     c.beginPath(); c.rect(0, 0, W, H); c.clip();
     if (t < 3.0) sceneTitle(c, t);
-    else if (t < 10.0) sceneArrive(c, t);
-    else if (t < 14.5) scenePhone(c, t);
-    else if (t < 21.0) sceneTalk(c, t);
-    else if (t < 25.5) sceneInflate(c, t);
-    else sceneLeave(c, t);
+    else if (t < AR_END) sceneArrive(c, t);
+    else {   // 後の場面は、それぞれの元の秒で描く
+      const u = t - SHIFT;
+      if (u < 14.5) scenePhone(c, u);
+      else if (u < 21.0) sceneTalk(c, u);
+      else if (u < 25.5) sceneInflate(c, u);
+      else sceneLeave(c, u);
+    }
 
     STEPS.forEach(([a, b, s]) => {
       const al = vis(t, a + 0.15, b, 0.3);
@@ -785,7 +816,7 @@ const DemoAnim = (() => {
       c.save(); c.globalAlpha = al;
       c.font = `700 46px ${FONT}`;
       const w = c.measureText(s).width + 64;
-      const y = (t >= 7.0 && t < 10.0) || (t >= 14.5 && t < 25.5) ? 770 : 34;
+      const y = (t >= 7.0 && t < AR_END) || (t >= 14.5 + SHIFT && t < 25.5 + SHIFT) ? 770 : 34;
       rr(c, 32, y, w, 84, 42); c.fillStyle = 'rgba(20,28,38,.8)'; c.fill();
       txt(c, s, 64, y + 59, 46, '#fff');
       c.restore();
@@ -1013,7 +1044,7 @@ let videoSource = 'demo';   // 'uploaded' | 'file' | 'demo'
 let objectUrl = null;
 let demoT = 0, demoPlaying = false, demoLast = 0, demoRaf = 0;
 // video.mp4 を差し替えたら、この日付も変える（iPadが古い動画を覚えていても、新しい動画を読み直させるため）
-const VIDEO_URL = 'video.mp4?v=20261124-4';
+const VIDEO_URL = 'video.mp4?v=20261125-1';
 let autoPlayed = false;   // 自動再生はページを開いてから1回だけ。2回目以降はボタンで再生
 
 function sizeDemo() {
